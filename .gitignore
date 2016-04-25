@@ -9,12 +9,15 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+bin/
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
+include/
+local/
 lib/
 lib64/
 parts/
@@ -60,3 +63,4 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+*.swp
