@@ -1,3 +1,7 @@
+## 0.3 (2016-04-27)
+feat: added travis, normalized directories
+
+
 ## 0.2 (2016-04-27)
 feat: Added tests, restructured code
 

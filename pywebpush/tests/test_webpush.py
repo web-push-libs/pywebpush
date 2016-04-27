@@ -7,7 +7,7 @@ from mock import patch
 from nose.tools import eq_, ok_
 import pyelliptic
 
-from webpush import WebPusher, WebPushException
+from pywebpush import WebPusher, WebPushException
 
 
 class WebpushTestCase(unittest.TestCase):

@@ -3,7 +3,7 @@ import os
 
 from setuptools import setup
 
-__version__ = "0.2"
+__version__ = "0.3"
 
 
 def read_from(file):
@@ -25,7 +25,7 @@ with io.open(os.path.join(here, 'CHANGELOG.md'), encoding='utf8') as f:
     CHANGES = f.read()
 
 setup(name="pywebpush",
-      version="0.2",
+      version=__version__,
       description='WebPush publication library',
       long_description=README + '\n\n' + CHANGES,
       classifiers=["Topic :: Internet :: WWW/HTTP",
