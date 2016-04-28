@@ -1,7 +1,7 @@
 import io
 import os
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 __version__ = "0.3.1"
 
@@ -26,6 +26,7 @@ with io.open(os.path.join(here, 'CHANGELOG.md'), encoding='utf8') as f:
 
 setup(name="pywebpush",
       version=__version__,
+      packages=find_packages(),
       description='WebPush publication library',
       long_description=README + '\n\n' + CHANGES,
       classifiers=["Topic :: Internet :: WWW/HTTP",
