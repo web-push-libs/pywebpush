@@ -24,11 +24,11 @@ class WebpushTestCase(unittest.TestCase):
     def test_init(self):
         # use static values so we know what to look for in the reply
         subscription_info = {
-            "endpoint": "https://example.com/",
-            "keys": {
-                "p256dh": ("BOrnIslXrUow2VAzKCUAE4sIbK00daEZCswOcf8m3T"
-                           "F8V82B-OpOg5JbmYLg44kRcvQC1E2gMJshsUYA-_zMPR8"),
-                "auth": "k8JV6sjdbhAi1n3_LDBLvA"
+            u"endpoint": u"https://example.com/",
+            u"keys": {
+                u"p256dh": (u"BOrnIslXrUow2VAzKCUAE4sIbK00daEZCswOcf8m3T"
+                            "F8V82B-OpOg5JbmYLg44kRcvQC1E2gMJshsUYA-_zMPR8"),
+                u"auth": u"k8JV6sjdbhAi1n3_LDBLvA"
             }
         }
         self.assertRaises(
