@@ -68,11 +68,13 @@ class WebPusher:
         for k in ['p256dh', 'auth']:
             if keys.get(k) is None:
                 raise WebPushException("Missing keys value: %s", k)
-        receiver_raw = base64.urlsafe_b64decode(self._repad(keys['p256dh']))
+        receiver_raw = base64.urlsafe_b64decode(
+            self._repad(keys['p256dh'].encode('utf8')))
         if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
             raise WebPushException("Invalid p256dh key specified")
         self.receiver_key = receiver_raw
-        self.auth_key = base64.urlsafe_b64decode(self._repad(keys['auth']))
+        self.auth_key = base64.urlsafe_b64decode(
+            self._repad(keys['auth'].encode('utf8')))
 
     def _repad(self, str):
         """Add base64 padding to the end of a string, if required"""
@@ -96,7 +98,7 @@ class WebPusher:
         server_key_id = base64.urlsafe_b64encode(server_key.get_pubkey()[1:])
 
         # http_ece requires that these both be set BEFORE encrypt or
-        # decrypt is called.
+        # decrypt is called if you specify the key as "dh".
         http_ece.keys[server_key_id] = server_key
         http_ece.labels[server_key_id] = "P-256"
 

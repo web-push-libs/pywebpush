@@ -3,7 +3,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 
 def read_from(file):
