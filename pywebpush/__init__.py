@@ -14,6 +14,33 @@ class WebPushException(Exception):
     pass
 
 
+class CaseInsensitiveDict(dict):
+    """A dictionary that has case-insensitive keys"""
+
+    def __init__(self, data={}, **kwargs):
+        for key in data:
+            dict.__setitem__(self, key.lower(), data[key])
+        self.update(kwargs)
+
+    def __contains__(self, key):
+        return dict.__contains__(self, key.lower())
+
+    def __setitem__(self, key, value):
+        dict.__setitem__(self, key.lower(), value)
+
+    def __getitem__(self, key):
+        return dict.__getitem__(self, key.lower())
+
+    def __delitem__(self, key):
+        dict.__delitem__(self, key.lower())
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
+
 class WebPusher:
     """WebPusher encrypts a data block using HTTP Encrypted Content Encoding
     for WebPush.
@@ -109,12 +136,12 @@ class WebPusher:
             dh=self.receiver_key,
             authSecret=self.auth_key)
 
-        return {
+        return CaseInsensitiveDict({
             'crypto_key': base64.urlsafe_b64encode(
                 server_key.get_pubkey()).strip('='),
             'salt': base64.urlsafe_b64encode(salt).strip("="),
             'body': encrypted,
-        }
+        })
 
     def send(self, data, headers={}, ttl=0):
         """Encode and send the data to the Push Service.
@@ -129,6 +156,7 @@ class WebPusher:
         # Encode the data.
         encoded = self.encode(data)
         # Append the p256dh to the end of any existing crypto-key
+        headers = CaseInsensitiveDict(headers)
         crypto_key = headers.get("crypto-key", "")
         if crypto_key:
             crypto_key += ','

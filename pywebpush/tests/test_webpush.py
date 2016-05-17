@@ -7,7 +7,7 @@ from mock import patch
 from nose.tools import eq_, ok_
 import pyelliptic
 
-from pywebpush import WebPusher, WebPushException
+from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict
 
 
 class WebpushTestCase(unittest.TestCase):
@@ -94,15 +94,23 @@ class WebpushTestCase(unittest.TestCase):
     def test_send(self, mock_post):
         recv_key = pyelliptic.ECC(curve="prime256v1")
         subscription_info = self._gen_subscription_info(recv_key)
-        headers = {"crypto-key": "pre-existing",
-                   "authentication": "bearer vapid"}
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
         data = "Mary had a little lamb"
         WebPusher(subscription_info).send(data, headers)
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), 0)
         ok_('encryption' in pheaders)
-        eq_(pheaders.get('authentication'), headers.get('authentication'))
+        eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing,' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    def test_ci_dict(self):
+        ci = CaseInsensitiveDict({"Foo": "apple", "bar": "banana"})
+        eq_('apple', ci["foo"])
+        eq_('apple', ci.get("FOO"))
+        eq_('apple', ci.get("Foo"))
+        del (ci['FOO'])
+        eq_(None, ci.get('Foo'))
