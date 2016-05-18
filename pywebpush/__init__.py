@@ -14,6 +14,33 @@ class WebPushException(Exception):
     pass
 
 
+class CaseInsensitiveDict(dict):
+    """A dictionary that has case-insensitive keys"""
+
+    def __init__(self, data={}, **kwargs):
+        for key in data:
+            dict.__setitem__(self, key.lower(), data[key])
+        self.update(kwargs)
+
+    def __contains__(self, key):
+        return dict.__contains__(self, key.lower())
+
+    def __setitem__(self, key, value):
+        dict.__setitem__(self, key.lower(), value)
+
+    def __getitem__(self, key):
+        return dict.__getitem__(self, key.lower())
+
+    def __delitem__(self, key):
+        dict.__delitem__(self, key.lower())
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
+
 class WebPusher:
     """WebPusher encrypts a data block using HTTP Encrypted Content Encoding
     for WebPush.
@@ -68,11 +95,13 @@ class WebPusher:
         for k in ['p256dh', 'auth']:
             if keys.get(k) is None:
                 raise WebPushException("Missing keys value: %s", k)
-        receiver_raw = base64.urlsafe_b64decode(self._repad(keys['p256dh']))
+        receiver_raw = base64.urlsafe_b64decode(
+            self._repad(keys['p256dh'].encode('utf8')))
         if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
             raise WebPushException("Invalid p256dh key specified")
         self.receiver_key = receiver_raw
-        self.auth_key = base64.urlsafe_b64decode(self._repad(keys['auth']))
+        self.auth_key = base64.urlsafe_b64decode(
+            self._repad(keys['auth'].encode('utf8')))
 
     def _repad(self, str):
         """Add base64 padding to the end of a string, if required"""
@@ -96,7 +125,7 @@ class WebPusher:
         server_key_id = base64.urlsafe_b64encode(server_key.get_pubkey()[1:])
 
         # http_ece requires that these both be set BEFORE encrypt or
-        # decrypt is called.
+        # decrypt is called if you specify the key as "dh".
         http_ece.keys[server_key_id] = server_key
         http_ece.labels[server_key_id] = "P-256"
 
@@ -107,12 +136,12 @@ class WebPusher:
             dh=self.receiver_key,
             authSecret=self.auth_key)
 
-        return {
+        return CaseInsensitiveDict({
             'crypto_key': base64.urlsafe_b64encode(
                 server_key.get_pubkey()).strip('='),
             'salt': base64.urlsafe_b64encode(salt).strip("="),
             'body': encrypted,
-        }
+        })
 
     def send(self, data, headers={}, ttl=0):
         """Encode and send the data to the Push Service.
@@ -127,6 +156,7 @@ class WebPusher:
         # Encode the data.
         encoded = self.encode(data)
         # Append the p256dh to the end of any existing crypto-key
+        headers = CaseInsensitiveDict(headers)
         crypto_key = headers.get("crypto-key", "")
         if crypto_key:
             crypto_key += ','

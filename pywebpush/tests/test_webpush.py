@@ -7,7 +7,7 @@ from mock import patch
 from nose.tools import eq_, ok_
 import pyelliptic
 
-from pywebpush import WebPusher, WebPushException
+from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict
 
 
 class WebpushTestCase(unittest.TestCase):
@@ -24,11 +24,11 @@ class WebpushTestCase(unittest.TestCase):
     def test_init(self):
         # use static values so we know what to look for in the reply
         subscription_info = {
-            "endpoint": "https://example.com/",
-            "keys": {
-                "p256dh": ("BOrnIslXrUow2VAzKCUAE4sIbK00daEZCswOcf8m3T"
-                           "F8V82B-OpOg5JbmYLg44kRcvQC1E2gMJshsUYA-_zMPR8"),
-                "auth": "k8JV6sjdbhAi1n3_LDBLvA"
+            u"endpoint": u"https://example.com/",
+            u"keys": {
+                u"p256dh": (u"BOrnIslXrUow2VAzKCUAE4sIbK00daEZCswOcf8m3T"
+                            "F8V82B-OpOg5JbmYLg44kRcvQC1E2gMJshsUYA-_zMPR8"),
+                u"auth": u"k8JV6sjdbhAi1n3_LDBLvA"
             }
         }
         self.assertRaises(
@@ -94,15 +94,23 @@ class WebpushTestCase(unittest.TestCase):
     def test_send(self, mock_post):
         recv_key = pyelliptic.ECC(curve="prime256v1")
         subscription_info = self._gen_subscription_info(recv_key)
-        headers = {"crypto-key": "pre-existing",
-                   "authentication": "bearer vapid"}
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
         data = "Mary had a little lamb"
         WebPusher(subscription_info).send(data, headers)
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), 0)
         ok_('encryption' in pheaders)
-        eq_(pheaders.get('authentication'), headers.get('authentication'))
+        eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing,' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    def test_ci_dict(self):
+        ci = CaseInsensitiveDict({"Foo": "apple", "bar": "banana"})
+        eq_('apple', ci["foo"])
+        eq_('apple', ci.get("FOO"))
+        eq_('apple', ci.get("Foo"))
+        del (ci['FOO'])
+        eq_(None, ci.get('Foo'))
