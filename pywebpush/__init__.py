@@ -4,6 +4,7 @@
 
 import base64
 import os
+
 import json
 import http_ece
 import pyelliptic
@@ -151,13 +152,13 @@ class WebPusher:
             'body': encrypted,
         })
 
-    def send(self, data, gcm_key=None, reg_id=None, headers={}, ttl=0):
+    def send(self, data, headers={}, ttl=0, gcm_key=None, reg_id=None):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
-        :param gcm_key: API key obtained from the Google Developer Console. 
+        :param gcm_key: API key obtained from the Google Developer Console.
             Needed if endpoint is https://android.googleapis.com/gcm/send
-        :param reg_id: registration id of the recipient. If not provided, 
+        :param reg_id: registration id of the recipient. If not provided,
             it will be extracted from the endpoint.
         :param headers: A dictionary containing any additional HTTP headers.
         :param ttl: The Time To Live in seconds for this message if the
@@ -179,12 +180,12 @@ class WebPusher:
             'encryption': "keyid=p256dh;salt=" +
             encoded['salt'].decode('utf8'),
         })
-
-        if self.subscription_info['endpoint'].startswith('https://android.googleapis.com/gcm/send'):
+        gcm_endpoint = 'https://android.googleapis.com/gcm/send'
+        if self.subscription_info['endpoint'].startswith(gcm_endpoint):
 
             if not gcm_key:
-                raise WebPushException("API key not provided for google gcm endpoint")
-            endpoint = 'https://android.googleapis.com/gcm/send'
+                raise WebPushException("API key not provided for gcm endpoint")
+            endpoint = gcm_endpoint
             reg_ids = []
             if not reg_id:
                 reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
@@ -194,8 +195,8 @@ class WebPusher:
             data['raw_data'] = base64.b64encode(encoded.get('body'))
             encoded_data = json.dumps(data)
             headers.update({
-            'Authorization': 'key='+gcm_key,
-            'Content-Type': 'application/json',
+                'Authorization': 'key='+gcm_key,
+                'Content-Type': 'application/json',
             })
         else:
             encoded_data = encoded.get('body')
