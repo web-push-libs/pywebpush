@@ -3,10 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import base64
+import json
 import os
 
-import json
-
+import six
 import http_ece
 import pyelliptic
 import requests
@@ -41,6 +41,10 @@ class CaseInsensitiveDict(dict):
             return self.__getitem__(key)
         except KeyError:
             return default
+
+    def update(self, data):
+        for key in data:
+            self.__setitem__(key, data[key])
 
 
 class WebPusher:
@@ -88,11 +92,6 @@ class WebPusher:
             the client.
 
         """
-        # Python 2 v. 3 hack
-        try:
-            self.basestr = basestring
-        except NameError:
-            self.basestr = str
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
         if 'keys' not in subscription_info:
@@ -102,7 +101,7 @@ class WebPusher:
         for k in ['p256dh', 'auth']:
             if keys.get(k) is None:
                 raise WebPushException("Missing keys value: %s", k)
-            if isinstance(keys[k], self.basestr):
+            if isinstance(keys[k], six.string_types):
                 keys[k] = bytes(keys[k].encode('utf8'))
         receiver_raw = base64.urlsafe_b64decode(self._repad(keys['p256dh']))
         if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
@@ -131,7 +130,7 @@ class WebPusher:
         # ID tag.
         server_key_id = base64.urlsafe_b64encode(server_key.get_pubkey()[1:])
 
-        if isinstance(data, self.basestr):
+        if isinstance(data, six.string_types):
             data = bytes(data.encode('utf8'))
 
         # http_ece requires that these both be set BEFORE encrypt or
@@ -183,7 +182,6 @@ class WebPusher:
         })
         gcm_endpoint = 'https://android.googleapis.com/gcm/send'
         if self.subscription_info['endpoint'].startswith(gcm_endpoint):
-
             if not gcm_key:
                 raise WebPushException("API key not provided for gcm endpoint")
             endpoint = gcm_endpoint
@@ -193,7 +191,8 @@ class WebPusher:
             reg_ids.append(reg_id)
             data = {}
             data['registration_ids'] = reg_ids
-            data['raw_data'] = base64.b64encode(encoded.get('body'))
+            data['raw_data'] = base64.b64encode(
+                encoded.get('body')).decode('utf8')
             encoded_data = json.dumps(data)
             headers.update({
                 'Authorization': 'key='+gcm_key,
