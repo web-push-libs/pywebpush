@@ -41,6 +41,10 @@ class CaseInsensitiveDict(dict):
         except KeyError:
             return default
 
+    def update(self, data):
+        for key in data:
+            self.__setitem__(key, data[key])
+
 
 class WebPusher:
     """WebPusher encrypts a data block using HTTP Encrypted Content Encoding
@@ -173,7 +177,6 @@ class WebPusher:
         })
         gcm_endpoint = 'https://android.googleapis.com/gcm/send'
         if self.subscription_info['endpoint'].startswith(gcm_endpoint):
-
             if not gcm_key:
                 raise WebPushException("API key not provided for gcm endpoint")
             endpoint = gcm_endpoint
@@ -183,7 +186,8 @@ class WebPusher:
             reg_ids.append(reg_id)
             data = {}
             data['registration_ids'] = reg_ids
-            data['raw_data'] = base64.b64encode(encoded.get('body'))
+            data['raw_data'] = base64.b64encode(
+                encoded.get('body')).decode('utf8')
             encoded_data = json.dumps(data)
             headers.update({
                 'Authorization': 'key='+gcm_key,

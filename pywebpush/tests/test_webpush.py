@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import unittest
 
@@ -11,9 +12,9 @@ from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict
 
 
 class WebpushTestCase(unittest.TestCase):
-    def _gen_subscription_info(self, recv_key):
+    def _gen_subscription_info(self, recv_key, endpoint="https://example.com"):
         return {
-            "endpoint": "https://example.com/",
+            "endpoint": endpoint,
             "keys": {
                 'auth': base64.urlsafe_b64encode(os.urandom(16)).strip('='),
                 'p256dh': base64.urlsafe_b64encode(
@@ -114,3 +115,25 @@ class WebpushTestCase(unittest.TestCase):
         eq_('apple', ci.get("Foo"))
         del (ci['FOO'])
         eq_(None, ci.get('Foo'))
+
+    @patch("requests.post")
+    def test_gcm(self, mock_post):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(
+            recv_key,
+            endpoint="https://android.googleapis.com/gcm/send/regid123")
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        data = "Mary had a little lamb"
+        wp = WebPusher(subscription_info)
+        self.assertRaises(
+            WebPushException,
+            wp.send,
+            data,
+            headers)
+        wp.send(data, headers, gcm_key="gcm_key_value")
+        pdata = json.loads(mock_post.call_args[1].get('data'))
+        pheaders = mock_post.call_args[1].get('headers')
+        eq_(pdata["registration_ids"][0], "regid123")
+        eq_(pheaders.get("authorization"), "key=gcm_key_value")
+        eq_(pheaders.get("content-type"), "application/json")
