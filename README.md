@@ -37,7 +37,8 @@ JSON, etc), but be sure that your receiving application is able to
 parse and understand it. (e.g. `data = "Mary had a little lamb."`)
 
 gcm_key is the API key obtained from the Google Developer Console.
-It is only needed if endpoint is https://android.googleapis.com/gcm/send
+It is only needed if endpoint is
+https://android.googleapis.com/gcm/send
 
 `headers` is a `dict`ionary of additional HTTP header values (e.g.
 [VAPID](https://github.com/mozilla-services/vapid/tree/master/python)
