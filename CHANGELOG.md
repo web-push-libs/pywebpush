@@ -1,3 +1,6 @@
+## 0.4.0 (2016-06-05)
+feat: make python 2.7 / 3.5 polyglot
+
 ## 0.3.4 (2016-05-17)
 bug: make header keys case insenstive
 

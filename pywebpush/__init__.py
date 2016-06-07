@@ -3,9 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import base64
+import json
 import os
 
-import json
+import six
 import http_ece
 import pyelliptic
 import requests
@@ -100,22 +101,22 @@ class WebPusher:
         for k in ['p256dh', 'auth']:
             if keys.get(k) is None:
                 raise WebPushException("Missing keys value: %s", k)
-        receiver_raw = base64.urlsafe_b64decode(
-            self._repad(keys['p256dh'].encode('utf8')))
+            if isinstance(keys[k], six.string_types):
+                keys[k] = bytes(keys[k].encode('utf8'))
+        receiver_raw = base64.urlsafe_b64decode(self._repad(keys['p256dh']))
         if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
             raise WebPushException("Invalid p256dh key specified")
         self.receiver_key = receiver_raw
-        self.auth_key = base64.urlsafe_b64decode(
-            self._repad(keys['auth'].encode('utf8')))
+        self.auth_key = base64.urlsafe_b64decode(self._repad(keys['auth']))
 
-    def _repad(self, str):
+    def _repad(self, data):
         """Add base64 padding to the end of a string, if required"""
-        return str + "===="[:len(str) % 4]
+        return data + b"===="[:len(data) % 4]
 
     def encode(self, data):
         """Encrypt the data.
 
-        :param data: A serialized block of data (String, JSON, bit array,
+        :param data: A serialized block of byte data (String, JSON, bit array,
             etc.) Make sure that whatever you send, your client knows how
             to understand it.
 
@@ -128,6 +129,9 @@ class WebPusher:
         # the ID is the base64 of the raw key, minus the leading "\x04"
         # ID tag.
         server_key_id = base64.urlsafe_b64encode(server_key.get_pubkey()[1:])
+
+        if isinstance(data, six.string_types):
+            data = bytes(data.encode('utf8'))
 
         # http_ece requires that these both be set BEFORE encrypt or
         # decrypt is called if you specify the key as "dh".
@@ -143,8 +147,8 @@ class WebPusher:
 
         return CaseInsensitiveDict({
             'crypto_key': base64.urlsafe_b64encode(
-                server_key.get_pubkey()).strip('='),
-            'salt': base64.urlsafe_b64encode(salt).strip("="),
+                server_key.get_pubkey()).strip(b'='),
+            'salt': base64.urlsafe_b64encode(salt).strip(b'='),
             'body': encrypted,
         })
 
@@ -160,6 +164,10 @@ class WebPusher:
         :param ttl: The Time To Live in seconds for this message if the
             recipient is not online. (Defaults to "0", which discards the
             message immediately if the recipient is unavailable.)
+        :param gcm_key: API key obtained from the Google Developer Console.
+            Needed if endpoint is https://android.googleapis.com/gcm/send
+        :param reg_id: registration id of the recipient. If not provided,
+            it will be extracted from the endpoint.
 
         """
         # Encode the data.
@@ -169,11 +177,12 @@ class WebPusher:
         crypto_key = headers.get("crypto-key", "")
         if crypto_key:
             crypto_key += ','
-        crypto_key += "keyid=p256dh;dh=" + encoded["crypto_key"]
+        crypto_key += "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8')
         headers.update({
             'crypto-key': crypto_key,
             'content-encoding': 'aesgcm',
-            'encryption': "keyid=p256dh;salt=" + encoded['salt'],
+            'encryption': "keyid=p256dh;salt=" +
+            encoded['salt'].decode('utf8'),
         })
         gcm_endpoint = 'https://android.googleapis.com/gcm/send'
         if self.subscription_info['endpoint'].startswith(gcm_endpoint):

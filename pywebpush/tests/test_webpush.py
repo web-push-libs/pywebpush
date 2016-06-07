@@ -16,9 +16,9 @@ class WebpushTestCase(unittest.TestCase):
         return {
             "endpoint": endpoint,
             "keys": {
-                'auth': base64.urlsafe_b64encode(os.urandom(16)).strip('='),
+                'auth': base64.urlsafe_b64encode(os.urandom(16)).strip(b'='),
                 'p256dh': base64.urlsafe_b64encode(
-                    recv_key.get_pubkey()).strip('='),
+                    recv_key.get_pubkey()).strip(b'='),
             }
         }
 
@@ -32,6 +32,11 @@ class WebpushTestCase(unittest.TestCase):
                 u"auth": u"k8JV6sjdbhAi1n3_LDBLvA"
             }
         }
+        rk_decode = (b'\x04\xea\xe7"\xc9W\xadJ0\xd9P3(%\x00\x13\x8b'
+                     b'\x08l\xad4u\xa1\x19\n\xcc\x0eq\xff&\xdd1'
+                     b'|W\xcd\x81\xf8\xeaN\x83\x92[\x99\x82\xe0\xe3'
+                     b'\x89\x11r\xf4\x02\xd4M\xa00\x9b!\xb1F\x00'
+                     b'\xfb\xfc\xcc=\x1f')
         self.assertRaises(
             WebPushException,
             WebPusher,
@@ -56,12 +61,8 @@ class WebpushTestCase(unittest.TestCase):
 
         push = WebPusher(subscription_info)
         eq_(push.subscription_info, subscription_info)
-        eq_(push.receiver_key, ('\x04\xea\xe7"\xc9W\xadJ0\xd9P3(%\x00\x13\x8b'
-                                '\x08l\xad4u\xa1\x19\n\xcc\x0eq\xff&\xdd1'
-                                '|W\xcd\x81\xf8\xeaN\x83\x92[\x99\x82\xe0\xe3'
-                                '\x89\x11r\xf4\x02\xd4M\xa00\x9b!\xb1F\x00'
-                                '\xfb\xfc\xcc=\x1f'))
-        eq_(push.auth_key, '\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc')
+        eq_(push.receiver_key, rk_decode)
+        eq_(push.auth_key, b'\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc')
 
     def test_encode(self):
         recv_key = pyelliptic.ECC(curve="prime256v1")
@@ -89,7 +90,7 @@ class WebpushTestCase(unittest.TestCase):
             authSecret=raw_auth
             )
 
-        eq_(decoded, data)
+        eq_(decoded.decode('utf8'), data)
 
     @patch("requests.post")
     def test_send(self, mock_post):

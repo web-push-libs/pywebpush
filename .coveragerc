@@ -1,2 +1,3 @@
 [report]
 omit = *noseplugin*
+show_missing = True
