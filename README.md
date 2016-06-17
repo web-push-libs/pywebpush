@@ -51,6 +51,7 @@ WebPusher(subscription_info).send(data, headers)
 to send for Chrome:
 ```
 WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
+```
 
 You can also simply encode the data to send later by calling
 
