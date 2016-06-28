@@ -172,7 +172,10 @@ class WebPusher:
         headers = CaseInsensitiveDict(headers)
         crypto_key = headers.get("crypto-key", "")
         if crypto_key:
-            crypto_key += ','
+            # due to some confusion by a push service provider, we should
+            # use ';' instead of ',' to append the headers.
+            # see https://github.com/webpush-wg/webpush-encryption/issues/6
+            crypto_key += ';'
         crypto_key += "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8')
         headers.update({
             'crypto-key': crypto_key,
