@@ -156,8 +156,6 @@ class WebPusher:
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
-        :param gcm_key: API key obtained from the Google Developer Console.
-            Needed if endpoint is https://android.googleapis.com/gcm/send
         :param headers: A dictionary containing any additional HTTP headers.
         :param ttl: The Time To Live in seconds for this message if the
             recipient is not online. (Defaults to "0", which discards the
