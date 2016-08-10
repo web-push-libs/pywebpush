@@ -106,7 +106,7 @@ class WebpushTestCase(unittest.TestCase):
         ok_('encryption' in pheaders)
         eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
-        ok_('pre-existing,' in ckey)
+        ok_('pre-existing' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
 
     def test_ci_dict(self):
