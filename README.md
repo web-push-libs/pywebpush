@@ -3,6 +3,9 @@
 # Webpush Data encryption library for Python
 
 This is a work in progress.
+This library is available on [pypi as
+pywebpush](https://pypi.python.org/pypi/pywebpush).
+Source is available on [github](https://github.com/jrconlin/pywebpush)
 
 ## Installation
 
