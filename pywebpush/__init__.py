@@ -209,6 +209,15 @@ class WebPusher:
             headers['ttl'] = ttl
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
-        return requests.post(endpoint,
-                             data=encoded_data,
+        return self._post(endpoint, encoded_data, headers)
+
+    def _post(self, url, data, headers):
+        """Make POST request on specified Web Push endpoint with given data
+        and headers.
+
+        Subclass this class and override this method if you want to use any
+        other networking library or interface and keep the business logic.
+        """
+        return requests.post(url,
+                             data=data,
                              headers=headers)
