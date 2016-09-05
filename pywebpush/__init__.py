@@ -152,7 +152,7 @@ class WebPusher:
             'body': encrypted,
         })
 
-    def send(self, data, headers={}, ttl=0, gcm_key=None, reg_id=None):
+    def send(self, data, headers=None, ttl=0, gcm_key=None, reg_id=None):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -167,6 +167,8 @@ class WebPusher:
 
         """
         # Encode the data.
+        if headers is None:
+            headers = dict()
         encoded = self.encode(data)
         # Append the p256dh to the end of any existing crypto-key
         headers = CaseInsensitiveDict(headers)
@@ -192,7 +194,7 @@ class WebPusher:
             if not reg_id:
                 reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
             reg_ids.append(reg_id)
-            data = {}
+            data = dict()
             data['registration_ids'] = reg_ids
             data['raw_data'] = base64.b64encode(
                 encoded.get('body')).decode('utf8')
@@ -206,7 +208,7 @@ class WebPusher:
             endpoint = self.subscription_info['endpoint']
 
         if 'ttl' not in headers or ttl:
-            headers['ttl'] = str(ttl)
+            headers['ttl'] = str(ttl or 0)
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
         return self._post(endpoint, encoded_data, headers)
