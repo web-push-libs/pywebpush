@@ -119,7 +119,6 @@ class WebpushTestCase(unittest.TestCase):
         pheaders = mock_post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), '0')
         ok_('encryption' in pheaders)
-        ckey = pheaders.get('crypto-key')
         eq_(pheaders.get('content-encoding'), 'aesgcm')
 
     def test_ci_dict(self):
