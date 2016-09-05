@@ -206,7 +206,7 @@ class WebPusher:
             endpoint = self.subscription_info['endpoint']
 
         if 'ttl' not in headers or ttl:
-            headers['ttl'] = ttl
+            headers['ttl'] = str(ttl)
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
         return self._post(endpoint, encoded_data, headers)

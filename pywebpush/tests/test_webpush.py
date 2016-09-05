@@ -102,7 +102,7 @@ class WebpushTestCase(unittest.TestCase):
         WebPusher(subscription_info).send(data, headers)
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
-        eq_(pheaders.get('ttl'), 0)
+        eq_(pheaders.get('ttl'), "0")
         ok_('encryption' in pheaders)
         eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
