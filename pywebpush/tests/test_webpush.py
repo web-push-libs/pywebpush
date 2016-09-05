@@ -102,11 +102,23 @@ class WebpushTestCase(unittest.TestCase):
         WebPusher(subscription_info).send(data, headers)
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
-        eq_(pheaders.get('ttl'), "0")
+        eq_(pheaders.get('ttl'), '0')
         ok_('encryption' in pheaders)
         eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
+        eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    @patch("requests.post")
+    def test_send_no_headers(self, mock_post):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(recv_key)
+        data = "Mary had a little lamb"
+        WebPusher(subscription_info).send(data)
+        eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
+        pheaders = mock_post.call_args[1].get('headers')
+        eq_(pheaders.get('ttl'), '0')
+        ok_('encryption' in pheaders)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
 
     def test_ci_dict(self):

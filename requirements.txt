@@ -1,4 +1,4 @@
 http-ece==0.5.0
-python-jose==1.2.0
-requests==2.11.*
+python-jose
+requests
 flake8
