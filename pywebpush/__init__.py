@@ -198,6 +198,7 @@ class WebPusher:
             data['registration_ids'] = reg_ids
             data['raw_data'] = base64.b64encode(
                 encoded.get('body')).decode('utf8')
+            data['time_to_live'] = long(headers['ttl'] if 'ttl' in headers else ttl)
             encoded_data = json.dumps(data)
             headers.update({
                 'Authorization': 'key='+gcm_key,
