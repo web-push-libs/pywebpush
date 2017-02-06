@@ -3,7 +3,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "0.6.1"
+__version__ = "0.6.2"
 
 
 def read_from(file):
@@ -19,7 +19,7 @@ def read_from(file):
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-with io.open(os.path.join(here, 'README.md'), encoding='utf8') as f:
+with io.open(os.path.join(here, 'README.rst'), encoding='utf8') as f:
     README = f.read()
 with io.open(os.path.join(here, 'CHANGELOG.md'), encoding='utf8') as f:
     CHANGES = f.read()
