@@ -5,7 +5,7 @@ Webpush Data encryption library for Python
 
 This is a work in progress. This library is available on `pypi as
 pywebpush <https://pypi.python.org/pypi/pywebpush>`__. Source is
-available on `github <https://github.com/jrconlin/pywebpush>`__
+available on `github <https://github.com/web-push-libs/pywebpush>`__
 
 Installation
 ------------
@@ -66,7 +66,6 @@ You can also simply encode the data to send later by calling
 
     encoded = WebPush(subscription_info).encode(data)
 
-.. |Build\_Status| image:: https://travis-ci.org/jrconlin/pywebpush.svg?branch=master
-   :target: https://travis-ci.org/jrconlin/pywebpush
+.. |Build\_Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
+   :target: https://travis-ci.org/web-push-libs/pywebpush
 .. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master
-
