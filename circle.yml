@@ -1,0 +1,12 @@
+# circle ci file
+machine:
+  post:
+    - pyenv global 2.7.13 3.5
+
+dependencies:
+  pre:
+    - pip install -r test-requirements.txt
+
+test:
+  override:
+    - nosetests -v pywebpush

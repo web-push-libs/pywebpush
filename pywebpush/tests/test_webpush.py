@@ -3,9 +3,9 @@ import json
 import os
 import unittest
 
-import http_ece
 from mock import patch
 from nose.tools import eq_, ok_
+import http_ece
 import pyelliptic
 
 from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict
@@ -83,11 +83,11 @@ class WebpushTestCase(unittest.TestCase):
             push._repad(subscription_info['keys']['auth']))
 
         decoded = http_ece.decrypt(
-            buffer=encoded['body'],
+            encoded['body'],
             salt=raw_salt,
             dh=raw_dh,
             keyid=keyid,
-            authSecret=raw_auth
+            authSecret=raw_auth,
             )
 
         eq_(decoded.decode('utf8'), data)
@@ -108,6 +108,22 @@ class WebpushTestCase(unittest.TestCase):
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    @patch("requests.post")
+    def test_send_empty(self, mock_post):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(recv_key)
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        data = None
+        WebPusher(subscription_info).send(data, headers)
+        eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
+        pheaders = mock_post.call_args[1].get('headers')
+        eq_(pheaders.get('ttl'), '0')
+        ok_('encryption' not in pheaders)
+        eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
+        ckey = pheaders.get('crypto-key')
+        ok_('pre-existing' in ckey)
 
     @patch("requests.post")
     def test_send_no_headers(self, mock_post):
