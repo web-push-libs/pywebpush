@@ -1,4 +1,7 @@
 [![Build_Status](https://travis-ci.org/jrconlin/pywebpush.svg?branch=master)](https://travis-ci.org/jrconlin/pywebpush)
+[![Requirements
+Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master)]
+
 
 # Webpush Data encryption library for Python
 

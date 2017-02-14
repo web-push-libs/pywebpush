@@ -1,3 +1,10 @@
+## 0.7.0 (2017-02-14)
+feat: update to http-ece 0.7.0 (with draft-06 support)
+feat: Allow empty payloads for send()
+feat: Add python3 classfiers & python3.6 travis tests
+feat: Add README.rst
+bug: change long to int to support python3
+
 ## 0.4.0 (2016-06-05)
 feat: make python 2.7 / 3.5 polyglot
 
