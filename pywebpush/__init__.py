@@ -152,7 +152,7 @@ class WebPusher:
             'body': encrypted,
         })
 
-    def send(self, data, headers=None, ttl=0, gcm_key=None, reg_id=None):
+    def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -169,22 +169,25 @@ class WebPusher:
         # Encode the data.
         if headers is None:
             headers = dict()
-        encoded = self.encode(data)
-        # Append the p256dh to the end of any existing crypto-key
+        encoded = {}
         headers = CaseInsensitiveDict(headers)
-        crypto_key = headers.get("crypto-key", "")
-        if crypto_key:
-            # due to some confusion by a push service provider, we should
-            # use ';' instead of ',' to append the headers.
-            # see https://github.com/webpush-wg/webpush-encryption/issues/6
-            crypto_key += ';'
-        crypto_key += "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8')
-        headers.update({
-            'crypto-key': crypto_key,
-            'content-encoding': 'aesgcm',
-            'encryption': "keyid=p256dh;salt=" +
-            encoded['salt'].decode('utf8'),
-        })
+        if data:
+            encoded = self.encode(data)
+            # Append the p256dh to the end of any existing crypto-key
+            crypto_key = headers.get("crypto-key", "")
+            if crypto_key:
+                # due to some confusion by a push service provider, we should
+                # use ';' instead of ',' to append the headers.
+                # see https://github.com/webpush-wg/webpush-encryption/issues/6
+                crypto_key += ';'
+            crypto_key += (
+                "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8'))
+            headers.update({
+                'crypto-key': crypto_key,
+                'content-encoding': 'aesgcm',
+                'encryption': "keyid=p256dh;salt=" +
+                encoded['salt'].decode('utf8'),
+            })
         gcm_endpoint = 'https://android.googleapis.com/gcm/send'
         if self.subscription_info['endpoint'].startswith(gcm_endpoint):
             if not gcm_key:
@@ -194,13 +197,14 @@ class WebPusher:
             if not reg_id:
                 reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
             reg_ids.append(reg_id)
-            data = dict()
-            data['registration_ids'] = reg_ids
-            data['raw_data'] = base64.b64encode(
-                encoded.get('body')).decode('utf8')
-            data['time_to_live'] = int(
+            gcm_data = dict()
+            gcm_data['registration_ids'] = reg_ids
+            if data:
+                gcm_data['raw_data'] = base64.b64encode(
+                    encoded.get('body')).decode('utf8')
+            gcm_data['time_to_live'] = int(
                 headers['ttl'] if 'ttl' in headers else ttl)
-            encoded_data = json.dumps(data)
+            encoded_data = json.dumps(gcm_data)
             headers.update({
                 'Authorization': 'key='+gcm_key,
                 'Content-Type': 'application/json',
