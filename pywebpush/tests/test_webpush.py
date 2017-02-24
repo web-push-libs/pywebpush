@@ -3,9 +3,9 @@ import json
 import os
 import unittest
 
-import http_ece
 from mock import patch
 from nose.tools import eq_, ok_
+import http_ece
 import pyelliptic
 
 from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict
@@ -65,32 +65,44 @@ class WebpushTestCase(unittest.TestCase):
         eq_(push.auth_key, b'\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc')
 
     def test_encode(self):
+        for content_encoding in ["aesgcm", "aes128gcm"]:
+            recv_key = pyelliptic.ECC(curve="prime256v1")
+            subscription_info = self._gen_subscription_info(recv_key)
+            data = "Mary had a little lamb, with some nice mint jelly"
+            push = WebPusher(subscription_info)
+            encoded = push.encode(data, content_encoding=content_encoding)
+            keyid = base64.urlsafe_b64encode(recv_key.get_pubkey()[1:])
+            http_ece.keys[keyid] = recv_key
+            http_ece.labels[keyid] = 'P-256'
+            # Convert these b64 strings into their raw, binary form.
+            raw_salt = None
+            if 'salt' in encoded:
+                raw_salt = base64.urlsafe_b64decode(
+                    push._repad(encoded['salt']))
+            raw_dh = base64.urlsafe_b64decode(
+                push._repad(encoded['crypto_key']))
+            raw_auth = base64.urlsafe_b64decode(
+                push._repad(subscription_info['keys']['auth']))
+
+            decoded = http_ece.decrypt(
+                encoded['body'],
+                salt=raw_salt,
+                dh=raw_dh,
+                keyid=keyid,
+                authSecret=raw_auth,
+                version=content_encoding
+                )
+            eq_(decoded.decode('utf8'), data)
+
+    def test_bad_content_encoding(self):
         recv_key = pyelliptic.ECC(curve="prime256v1")
         subscription_info = self._gen_subscription_info(recv_key)
         data = "Mary had a little lamb, with some nice mint jelly"
         push = WebPusher(subscription_info)
-        encoded = push.encode(data)
-
-        keyid = base64.urlsafe_b64encode(recv_key.get_pubkey()[1:])
-
-        http_ece.keys[keyid] = recv_key
-        http_ece.labels[keyid] = 'P-256'
-
-        # Convert these b64 strings into their raw, binary form.
-        raw_salt = base64.urlsafe_b64decode(push._repad(encoded['salt']))
-        raw_dh = base64.urlsafe_b64decode(push._repad(encoded['crypto_key']))
-        raw_auth = base64.urlsafe_b64decode(
-            push._repad(subscription_info['keys']['auth']))
-
-        decoded = http_ece.decrypt(
-            buffer=encoded['body'],
-            salt=raw_salt,
-            dh=raw_dh,
-            keyid=keyid,
-            authSecret=raw_auth
-            )
-
-        eq_(decoded.decode('utf8'), data)
+        self.assertRaises(WebPushException,
+                          push.encode,
+                          data,
+                          content_encoding="aesgcm128")
 
     @patch("requests.post")
     def test_send(self, mock_post):
@@ -108,6 +120,22 @@ class WebpushTestCase(unittest.TestCase):
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    @patch("requests.post")
+    def test_send_empty(self, mock_post):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(recv_key)
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        data = None
+        WebPusher(subscription_info).send(data, headers)
+        eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
+        pheaders = mock_post.call_args[1].get('headers')
+        eq_(pheaders.get('ttl'), '0')
+        ok_('encryption' not in pheaders)
+        eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
+        ckey = pheaders.get('crypto-key')
+        ok_('pre-existing' in ckey)
 
     @patch("requests.post")
     def test_send_no_headers(self, mock_post):

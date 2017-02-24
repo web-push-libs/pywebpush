@@ -82,6 +82,11 @@ class WebPusher:
 
     """
     subscription_info = {}
+    valid_encodings = [
+        # "aesgcm128",  # this is draft-0, but DO NOT USE.
+        "aesgcm",  # draft-httpbis-encryption-encoding-01
+        "aes128gcm"  # draft-httpbis-encryption-encoding-04
+    ]
 
     def __init__(self, subscription_info):
         """Initialize using the info provided by the client PushSubscription
@@ -113,16 +118,28 @@ class WebPusher:
         """Add base64 padding to the end of a string, if required"""
         return data + b"===="[:len(data) % 4]
 
-    def encode(self, data):
+    def encode(self, data, content_encoding="aesgcm"):
         """Encrypt the data.
 
         :param data: A serialized block of byte data (String, JSON, bit array,
             etc.) Make sure that whatever you send, your client knows how
             to understand it.
+        :type data: str
+        :param content_encoding: The content_encoding type to use to encrypt
+            the data. Defaults to draft-01 "aesgcm". Latest draft-04 is
+            "aes128gcm", however not all clients may be able to use this
+            format.
+        :type content_encoding: enum("aesgcm", "aes128gcm")
 
         """
         # Salt is a random 16 byte array.
-        salt = os.urandom(16)
+        salt = None
+        if content_encoding not in self.valid_encodings:
+            raise WebPushException("Invalid content encoding specified. "
+                                   "Select from " +
+                                   json.dumps(self.valid_encodings))
+        if (content_encoding == "aesgcm"):
+            salt = os.urandom(16)
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = pyelliptic.ECC(curve="prime256v1")
@@ -133,26 +150,31 @@ class WebPusher:
         if isinstance(data, six.string_types):
             data = bytes(data.encode('utf8'))
 
+        key_id = server_key_id.decode('utf8')
         # http_ece requires that these both be set BEFORE encrypt or
         # decrypt is called if you specify the key as "dh".
-        http_ece.keys[server_key_id] = server_key
-        http_ece.labels[server_key_id] = "P-256"
+        http_ece.keys[key_id] = server_key
+        http_ece.labels[key_id] = "P-256"
 
         encrypted = http_ece.encrypt(
             data,
             salt=salt,
-            keyid=server_key_id,
+            keyid=key_id,
             dh=self.receiver_key,
-            authSecret=self.auth_key)
+            authSecret=self.auth_key,
+            version=content_encoding)
 
-        return CaseInsensitiveDict({
+        reply = CaseInsensitiveDict({
             'crypto_key': base64.urlsafe_b64encode(
                 server_key.get_pubkey()).strip(b'='),
-            'salt': base64.urlsafe_b64encode(salt).strip(b'='),
             'body': encrypted,
         })
+        if salt:
+            reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
+        return reply
 
-    def send(self, data, headers=None, ttl=0, gcm_key=None, reg_id=None):
+    def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
+             content_encoding="aesgcm"):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -169,22 +191,25 @@ class WebPusher:
         # Encode the data.
         if headers is None:
             headers = dict()
-        encoded = self.encode(data)
-        # Append the p256dh to the end of any existing crypto-key
+        encoded = {}
         headers = CaseInsensitiveDict(headers)
-        crypto_key = headers.get("crypto-key", "")
-        if crypto_key:
-            # due to some confusion by a push service provider, we should
-            # use ';' instead of ',' to append the headers.
-            # see https://github.com/webpush-wg/webpush-encryption/issues/6
-            crypto_key += ';'
-        crypto_key += "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8')
-        headers.update({
-            'crypto-key': crypto_key,
-            'content-encoding': 'aesgcm',
-            'encryption': "keyid=p256dh;salt=" +
-            encoded['salt'].decode('utf8'),
-        })
+        if data:
+            encoded = self.encode(data)
+            # Append the p256dh to the end of any existing crypto-key
+            crypto_key = headers.get("crypto-key", "")
+            if crypto_key:
+                # due to some confusion by a push service provider, we should
+                # use ';' instead of ',' to append the headers.
+                # see https://github.com/webpush-wg/webpush-encryption/issues/6
+                crypto_key += ';'
+            crypto_key += (
+                "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8'))
+            headers.update({
+                'crypto-key': crypto_key,
+                'content-encoding': 'aesgcm',
+                'encryption': "keyid=p256dh;salt=" +
+                encoded['salt'].decode('utf8'),
+            })
         gcm_endpoint = 'https://android.googleapis.com/gcm/send'
         if self.subscription_info['endpoint'].startswith(gcm_endpoint):
             if not gcm_key:
@@ -194,12 +219,14 @@ class WebPusher:
             if not reg_id:
                 reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
             reg_ids.append(reg_id)
-            data = dict()
-            data['registration_ids'] = reg_ids
-            data['raw_data'] = base64.b64encode(
-                encoded.get('body')).decode('utf8')
-            data['time_to_live'] = int(headers['ttl'] if 'ttl' in headers else ttl)
-            encoded_data = json.dumps(data)
+            gcm_data = dict()
+            gcm_data['registration_ids'] = reg_ids
+            if data:
+                gcm_data['raw_data'] = base64.b64encode(
+                    encoded.get('body')).decode('utf8')
+            gcm_data['time_to_live'] = int(
+                headers['ttl'] if 'ttl' in headers else ttl)
+            encoded_data = json.dumps(gcm_data)
             headers.update({
                 'Authorization': 'key='+gcm_key,
                 'Content-Type': 'application/json',
