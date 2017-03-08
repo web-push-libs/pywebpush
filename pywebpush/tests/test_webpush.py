@@ -3,16 +3,26 @@ import json
 import os
 import unittest
 
-from mock import patch
-from nose.tools import eq_, ok_
+from mock import patch, Mock
+from nose.tools import eq_, ok_, assert_raises
 import http_ece
 import pyelliptic
 
-from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict
+from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict, webpush
 
 
 class WebpushTestCase(unittest.TestCase):
-    def _gen_subscription_info(self, recv_key, endpoint="https://example.com"):
+
+    # This is a exported DER formatted string of an ECDH public key
+    # This was lifted from the py_vapid tests.
+    vapid_key = (
+        "MHcCAQEEIPeN1iAipHbt8+/KZ2NIF8NeN24jqAmnMLFZEMocY8RboAoGCCqGSM49"
+        "AwEHoUQDQgAEEJwJZq/GN8jJbo1GGpyU70hmP2hbWAUpQFKDByKB81yldJ9GTklB"
+        "M5xqEwuPM7VuQcyiLDhvovthPIXx+gsQRQ=="
+    )
+
+    def _gen_subscription_info(self, recv_key,
+                               endpoint="https://example.com/"):
         return {
             "endpoint": endpoint,
             "keys": {
@@ -41,10 +51,6 @@ class WebpushTestCase(unittest.TestCase):
             WebPushException,
             WebPusher,
             {"keys": {'p256dh': 'AAA=', 'auth': 'AAA='}})
-        self.assertRaises(
-            WebPushException,
-            WebPusher,
-            {"endpoint": "https://example.com"})
         self.assertRaises(
             WebPushException,
             WebPusher,
@@ -122,13 +128,83 @@ class WebpushTestCase(unittest.TestCase):
         eq_(pheaders.get('content-encoding'), 'aesgcm')
 
     @patch("requests.post")
+    def test_send_vapid(self, mock_post):
+        mock_post.return_value = Mock()
+        mock_post.return_value.status_code = 200
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+
+        subscription_info = self._gen_subscription_info(recv_key)
+        data = "Mary had a little lamb"
+        webpush(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=self.vapid_key,
+            vapid_claims={"sub": "mailto:ops@example.com"}
+        )
+        eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
+        pheaders = mock_post.call_args[1].get('headers')
+        eq_(pheaders.get('ttl'), '0')
+
+        def repad(str):
+            return str + "===="[:len(str) % 4]
+
+        auth = json.loads(
+            base64.urlsafe_b64decode(
+                repad(pheaders['authorization'].split('.')[1])
+            ).decode('utf8')
+        )
+        ok_(subscription_info.get('endpoint').startswith(auth['aud']))
+        ok_('encryption' in pheaders)
+        ok_('WebPush' in pheaders.get('authorization'))
+        ckey = pheaders.get('crypto-key')
+        ok_('p256ecdsa=' in ckey)
+        ok_('dh=' in ckey)
+        eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    @patch("requests.post")
+    def test_send_bad_vapid_no_key(self, mock_post):
+        mock_post.return_value = Mock()
+        mock_post.return_value.status_code = 200
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+
+        subscription_info = self._gen_subscription_info(recv_key)
+        data = "Mary had a little lamb"
+        assert_raises(WebPushException,
+                      webpush,
+                      subscription_info=subscription_info,
+                      data=data,
+                      vapid_claims={
+                              "aud": "https://example.com",
+                              "sub": "mailto:ops@example.com"
+                          }
+                      )
+
+    @patch("requests.post")
+    def test_send_bad_vapid_bad_return(self, mock_post):
+        mock_post.return_value = Mock()
+        mock_post.return_value.status_code = 410
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+
+        subscription_info = self._gen_subscription_info(recv_key)
+        data = "Mary had a little lamb"
+        assert_raises(WebPushException,
+                      webpush,
+                      subscription_info=subscription_info,
+                      data=data,
+                      vapid_claims={
+                              "aud": "https://example.com",
+                              "sub": "mailto:ops@example.com"
+                          },
+                      vapid_private_key=self.vapid_key
+                      )
+
+    @patch("requests.post")
     def test_send_empty(self, mock_post):
         recv_key = pyelliptic.ECC(curve="prime256v1")
         subscription_info = self._gen_subscription_info(recv_key)
         headers = {"Crypto-Key": "pre-existing",
                    "Authentication": "bearer vapid"}
-        data = None
-        WebPusher(subscription_info).send(data, headers)
+        WebPusher(subscription_info).send('', headers)
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), '0')
@@ -136,6 +212,27 @@ class WebpushTestCase(unittest.TestCase):
         eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
+
+    def test_encode_empty(self):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(recv_key)
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        encoded = WebPusher(subscription_info).encode('', headers)
+        eq_(encoded, None)
+
+    def test_encode_no_crypto(self):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(recv_key)
+        del(subscription_info['keys'])
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        data = 'Something'
+        pusher = WebPusher(subscription_info)
+        assert_raises(WebPushException,
+                      pusher.encode,
+                      data,
+                      headers)
 
     @patch("requests.post")
     def test_send_no_headers(self, mock_post):
@@ -148,6 +245,31 @@ class WebpushTestCase(unittest.TestCase):
         eq_(pheaders.get('ttl'), '0')
         ok_('encryption' in pheaders)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    @patch("pywebpush.open")
+    def test_as_curl(self, opener):
+        recv_key = pyelliptic.ECC(curve="prime256v1")
+        subscription_info = self._gen_subscription_info(recv_key)
+        result = webpush(
+            subscription_info,
+            data="Mary had a little lamb",
+            vapid_claims={
+                    "aud": "https://example.com",
+                    "sub": "mailto:ops@example.com"
+                },
+            vapid_private_key=self.vapid_key,
+            curl=True
+        )
+        for s in [
+            "curl -vX POST https://example.com",
+            "-H \"crypto-key: p256ecdsa=",
+            "-H \"content-encoding: aesgcm\"",
+            "-H \"authorization: WebPush ",
+            "-H \"encryption: keyid=p256dh;salt=",
+            "-H \"ttl: 0\"",
+            "-H \"content-length:"
+        ]:
+            ok_(s in result)
 
     def test_ci_dict(self):
         ci = CaseInsensitiveDict({"Foo": "apple", "bar": "banana"})
@@ -167,11 +289,6 @@ class WebpushTestCase(unittest.TestCase):
                    "Authentication": "bearer vapid"}
         data = "Mary had a little lamb"
         wp = WebPusher(subscription_info)
-        self.assertRaises(
-            WebPushException,
-            wp.send,
-            data,
-            headers)
         wp.send(data, headers, gcm_key="gcm_key_value")
         pdata = json.loads(mock_post.call_args[1].get('data'))
         pheaders = mock_post.call_args[1].get('headers')

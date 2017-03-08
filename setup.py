@@ -3,7 +3,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 
 def read_from(file):
@@ -13,6 +13,9 @@ def read_from(file):
             l = l.strip()
             if not l:
                 break
+            if l[:2] == '-r':
+                reply += read_from(l.split(' ')[1])
+                continue
             if l[0] != '#' or l[:2] != '//':
                 reply.append(l)
     return reply
@@ -50,5 +53,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=read_from('requirements.txt'),
-    tests_require=read_from('test-requirements.txt')
+    tests_require=read_from('test-requirements.txt'),
+    entry_points="""
+    [console_scripts]
+    pywebpush = pywebpush.__main__:main
+    """,
 )
