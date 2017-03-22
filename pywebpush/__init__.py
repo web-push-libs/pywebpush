@@ -6,10 +6,16 @@ import base64
 import json
 import os
 
+try:
+    from urllib.parse import urlparse
+except ImportError:  # pragma nocover
+    from urlparse import urlparse
+
 import six
 import http_ece
 import pyelliptic
 import requests
+from py_vapid import Vapid
 
 
 class WebPushException(Exception):
@@ -64,7 +70,7 @@ class WebPusher:
     (e.g.
     .. code-block:: javascript
         subscription_info.getJSON() ==
-        {"endpoint": "https://push...",
+        {"endpoint": "https://push.server.com/...",
          "keys":{"auth": "...", "p256dh": "..."}
         }
     )
@@ -75,7 +81,7 @@ class WebPusher:
 
     .. code-block:: python
         # Optional
-        # headers = py_vapid.sign({"aud": "http://your.site.com",
+        # headers = py_vapid.sign({"aud": "https://push.server.com/",
                                    "sub": "mailto:your_admin@your.site.com"})
         data = "Mary had a little lamb, with a nice mint jelly"
         WebPusher(subscription_info).send(data, headers)
@@ -95,24 +101,27 @@ class WebPusher:
 
         :param subscription_info: a dict containing the subscription_info from
             the client.
+        :type subscription_info: dict
 
         """
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
-        if 'keys' not in subscription_info:
-            raise WebPushException("subscription_info missing keys dictionary")
         self.subscription_info = subscription_info
-        keys = self.subscription_info['keys']
-        for k in ['p256dh', 'auth']:
-            if keys.get(k) is None:
-                raise WebPushException("Missing keys value: %s", k)
-            if isinstance(keys[k], six.string_types):
-                keys[k] = bytes(keys[k].encode('utf8'))
-        receiver_raw = base64.urlsafe_b64decode(self._repad(keys['p256dh']))
-        if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
-            raise WebPushException("Invalid p256dh key specified")
-        self.receiver_key = receiver_raw
-        self.auth_key = base64.urlsafe_b64decode(self._repad(keys['auth']))
+        self.auth_key = self.receiver_key = None
+        if 'keys' in subscription_info:
+            keys = self.subscription_info['keys']
+            for k in ['p256dh', 'auth']:
+                if keys.get(k) is None:
+                    raise WebPushException("Missing keys value: %s", k)
+                if isinstance(keys[k], six.string_types):
+                    keys[k] = bytes(keys[k].encode('utf8'))
+            receiver_raw = base64.urlsafe_b64decode(
+                self._repad(keys['p256dh']))
+            if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
+                raise WebPushException("Invalid p256dh key specified")
+            self.receiver_key = receiver_raw
+            self.auth_key = base64.urlsafe_b64decode(
+                self._repad(keys['auth']))
 
     def _repad(self, data):
         """Add base64 padding to the end of a string, if required"""
@@ -133,6 +142,10 @@ class WebPusher:
 
         """
         # Salt is a random 16 byte array.
+        if not data:
+            return
+        if not self.auth_key or not self.receiver_key:
+            raise WebPushException("No keys specified in subscription info")
         salt = None
         if content_encoding not in self.valid_encodings:
             raise WebPushException("Invalid content encoding specified. "
@@ -173,19 +186,58 @@ class WebPusher:
             reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
         return reply
 
+    def as_curl(self, endpoint, encoded_data, headers):
+        """Return the send as a curl command.
+
+        Useful for debugging. This will write out the encoded data to a local
+        file named `encrypted.data`
+
+        :param endpoint: Push service endpoint URL
+        :type endpoint: basestring
+        :param encoded_data: byte array of encoded data
+        :type encoded_data: bytearray
+        :param headers: Additional headers for the send
+        :type headers: dict
+        :returns string
+
+        """
+        header_list = [
+            '-H "{}: {}" \\ \n'.format(
+                key.lower(), val) for key, val in headers.items()
+        ]
+        data = ""
+        if encoded_data:
+            with open("encrypted.data", "wb") as f:
+                f.write(encoded_data)
+            data = "--data-binary @encrypted.data"
+        if 'content-length' not in headers:
+            header_list.append(
+                '-H "content-length: {}" \\ \n'.format(len(data)))
+        return ("""curl -vX POST {url} \\\n{headers}{data}""".format(
+            url=endpoint, headers="".join(header_list), data=data))
+
     def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
-             content_encoding="aesgcm"):
+             content_encoding="aesgcm", curl=False):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
+        :type data: str
         :param headers: A dictionary containing any additional HTTP headers.
+        :type headers: dict
         :param ttl: The Time To Live in seconds for this message if the
             recipient is not online. (Defaults to "0", which discards the
             message immediately if the recipient is unavailable.)
+        :type ttl: int
         :param gcm_key: API key obtained from the Google Developer Console.
             Needed if endpoint is https://android.googleapis.com/gcm/send
+        :type gcm_key: string
         :param reg_id: registration id of the recipient. If not provided,
             it will be extracted from the endpoint.
+        :type reg_id: str
+        :param content_encoding: ECE content encoding (defaults to "aesgcm")
+        :type content_encoding: str
+        :param curl: Display output as `curl` command instead of sending
+        :type curl: bool
 
         """
         # Encode the data.
@@ -206,15 +258,12 @@ class WebPusher:
                 "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8'))
             headers.update({
                 'crypto-key': crypto_key,
-                'content-encoding': 'aesgcm',
+                'content-encoding': content_encoding,
                 'encryption': "keyid=p256dh;salt=" +
                 encoded['salt'].decode('utf8'),
             })
-        gcm_endpoint = 'https://android.googleapis.com/gcm/send'
-        if self.subscription_info['endpoint'].startswith(gcm_endpoint):
-            if not gcm_key:
-                raise WebPushException("API key not provided for gcm endpoint")
-            endpoint = gcm_endpoint
+        if gcm_key:
+            endpoint = 'https://android.googleapis.com/gcm/send'
             reg_ids = []
             if not reg_id:
                 reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
@@ -239,15 +288,80 @@ class WebPusher:
             headers['ttl'] = str(ttl or 0)
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
-        return self._post(endpoint, encoded_data, headers)
-
-    def _post(self, url, data, headers):
-        """Make POST request on specified Web Push endpoint with given data
-        and headers.
-
-        Subclass this class and override this method if you want to use any
-        other networking library or interface and keep the business logic.
-        """
-        return requests.post(url,
-                             data=data,
+        if curl:
+            return self.as_curl(endpoint, encoded_data, headers)
+        return requests.post(endpoint,
+                             data=encoded_data,
                              headers=headers)
+
+
+def webpush(subscription_info,
+            data=None,
+            vapid_private_key=None,
+            vapid_claims=None,
+            content_encoding="aesgcm",
+            curl=False):
+    """
+        One call solution to endcode and send `data` to the endpoint
+        contained in `subscription_info` using optional VAPID auth headers.
+
+        in example:
+
+        .. code-block:: python
+
+        from pywebpush import python
+
+        webpush(
+            subscription_info={
+                "endpoint": "https://push.example.com/v1/abcd",
+                "keys": {"p256dh": "0123abcd...",
+                         "auth": "001122..."}
+                 },
+            data="Mary had a little lamb, with a nice mint jelly",
+            vapid_private_key="path/to/key.pem",
+            vapid_claims={"sub": "YourNameHere@example.com"}
+            )
+
+        No additional method call is required. Any non-success will throw a
+        `WebPushException`.
+
+    :param subscription_info: Provided by the client call
+    :type subscription_info: dict
+    :param data: Serialized data to send
+    :type data: str
+    :param vapid_private_key: Dath to vapid private key PEM or encoded str
+    :type vapid_private_key: str
+    :param vapid_claims: Dictionary of claims ('sub' required)
+    :type vapid_claims: dict
+    :param content_encoding: Optional content type string
+    :type content_encoding: str
+    :param curl: Return as "curl" string instead of sending
+    :type curl: bool
+    :return requests.Response or string
+
+    """
+    vapid_headers = None
+    if vapid_claims:
+        if not vapid_claims.get('aud'):
+            url = urlparse(subscription_info.get('endpoint'))
+            aud = "{}://{}/".format(url.scheme, url.netloc)
+            vapid_claims['aud'] = aud
+        if not vapid_private_key:
+            raise WebPushException("VAPID dict missing 'private_key'")
+        if os.path.isfile(vapid_private_key):
+            # Presume that key from file is handled correctly by
+            # py_vapid.
+            vv = Vapid(private_key_file=vapid_private_key)  # pragma no cover
+        else:
+            vv = Vapid(private_key=vapid_private_key)
+        vapid_headers = vv.sign(vapid_claims)
+    result = WebPusher(subscription_info).send(
+        data,
+        vapid_headers,
+        content_encoding=content_encoding,
+        curl=curl,
+    )
+    if not curl and result.status_code > 202:
+        raise WebPushException("Push failed: {}:".format(
+            result, result.text))
+    return result
