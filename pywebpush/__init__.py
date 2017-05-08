@@ -112,7 +112,7 @@ class WebPusher:
             keys = self.subscription_info['keys']
             for k in ['p256dh', 'auth']:
                 if keys.get(k) is None:
-                    raise WebPushException("Missing keys value: %s", k)
+                    raise WebPushException("Missing keys value: %s" % (k,))
                 if isinstance(keys[k], six.string_types):
                     keys[k] = bytes(keys[k].encode('utf8'))
             receiver_raw = base64.urlsafe_b64decode(
@@ -362,6 +362,6 @@ def webpush(subscription_info,
         curl=curl,
     )
     if not curl and result.status_code > 202:
-        raise WebPushException("Push failed: {}:".format(
+        raise WebPushException("Push failed: {}: {}".format(
             result, result.text))
     return result
