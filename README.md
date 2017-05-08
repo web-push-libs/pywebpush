@@ -1,4 +1,4 @@
-[![Build_Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master)](https://travis-ci.org/web-push-libs/pywebpush)
+[![Build Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master)](https://travis-ci.org/web-push-libs/pywebpush)
 [![Requirements
 Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=feat%2F44)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master)
 
