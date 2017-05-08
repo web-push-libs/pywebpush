@@ -1,4 +1,4 @@
-|Build\_Status| |Requirements Status|
+|Build Status| |Requirements Status|
 
 Webpush Data encryption library for Python
 ==========================================
@@ -170,7 +170,7 @@ Encode the ``data`` for future use. On error, returns a
 
     encoded_data = WebPush(subscription_info).encode(data)
 
-.. |Build\_Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
+.. |Build Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
    :target: https://travis-ci.org/web-push-libs/pywebpush
-.. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=feat%2F44
+.. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master
    :target: https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master
