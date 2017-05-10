@@ -46,11 +46,15 @@ recipients. There's a "One Call" function which will make things easier.
 .. code:: pythonstub
 
         from pywebpush import webpush
+        from urllib.parse import urlparse
+
+        endpoint_parsed = urlparse(subscription_info["endpoint"])
+        audience = "%s://%s" % (endpoint_parsed.scheme, endpoint_parsed.hostname)
 
         webpush(subscription_info,
                 data,
                 vapid_private_key="Private Key or File Path[1]",
-                vapid_claims={"sub": "mailto:YourEmailAddress"})
+                vapid_claims={"sub": "mailto:YourEmailAddress", "aud": audience})
 
 This will encode ``data``, add the appropriate VAPID auth headers if
 required and send it to the push server identified in the
@@ -101,6 +105,7 @@ e.g. the output of:
             vapid_private_key="path/to/vapid_private.pem",
             vapid_claims={
                     "sub": "YourNameHere@example.org",
+                    "aud": "https://push.example.com",
                 }
         )
     except WebPushException as ex:
