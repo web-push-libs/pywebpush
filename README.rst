@@ -1,4 +1,4 @@
-|Build\_Status| |Requirements Status|
+|Build Status| |Requirements Status|
 
 Webpush Data encryption library for Python
 ==========================================
@@ -65,10 +65,15 @@ above).
 etc), but be sure that your receiving application is able to parse and
 understand it. (e.g. ``data = "Mary had a little lamb."``)
 
+*content\_type* - specifies the form of Encryption to use, either
+``'aesgcm'`` or the newer ``'aes128gcm'``. NOTE that not all User Agents
+can decrypt ``'aes128gcm'``, so the library defaults to the older form.
+
 *vapid\_claims* - a ``dict`` containing the VAPID claims required for
 authorization (See
 `py\_vapid <https://github.com/web-push-libs/vapid/tree/master/python>`__
-for more details)
+for more details). If ``aud`` is not specified, pywebpush will attempt
+to auto-fill from the ``endpoint``.
 
 *vapid\_private\_key* - Either a path to a VAPID EC2 private key PEM
 file, or a string containing the DER representation. (See
@@ -170,7 +175,7 @@ Encode the ``data`` for future use. On error, returns a
 
     encoded_data = WebPush(subscription_info).encode(data)
 
-.. |Build\_Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
+.. |Build Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
    :target: https://travis-ci.org/web-push-libs/pywebpush
-.. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=feat%2F44
+.. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master
    :target: https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master
