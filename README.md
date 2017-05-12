@@ -14,7 +14,8 @@ Source is available on
 
 You'll need to run `python virtualenv`.
 Then
-```commandline
+
+```
 bin/pip install -r requirements.txt
 bin/python setup.py develop
 ```
@@ -29,6 +30,7 @@ object. This object has a .toJSON() method that will return a JSON object that c
 and push data.
 
 As illustration, a `subscription_info` object may look like:
+
 ```json
 {"endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...", "keys": {"auth": "k8J...", "p256dh": "BOr..."}}
 ```
@@ -44,14 +46,15 @@ In many cases, your code will be sending a single message to many
 recipients. There's a "One Call" function which will make things
 easier.
 
-```pythonstub
-    from pywebpush import webpush
+```python
+from pywebpush import webpush
 
-    webpush(subscription_info,
-            data,
-            vapid_private_key="Private Key or File Path[1]",
-            vapid_claims={"sub": "mailto:YourEmailAddress"})
+webpush(subscription_info,
+        data,
+        vapid_private_key="Private Key or File Path[1]",
+        vapid_claims={"sub": "mailto:YourEmailAddress"})
 ```
+
 This will encode `data`, add the appropriate VAPID auth headers if required and send it to the push server identified
 in the `subscription_info` block.
 
@@ -74,13 +77,14 @@ pywebpush will attempt to auto-fill from the `endpoint`.
 a base64 encoded DER formatted private key, or the path to an OpenSSL exported private key file.
 
 e.g. the output of:
-```commandline
+
+```
 openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 ```
 
 **Example**
 
-```pythonstub
+```python
 from pywebpush import webpush, WebPushException
 
 try:
@@ -133,7 +137,8 @@ named `encrpypted.data`. This command is meant to be used for debugging purposes
 **Example**
 
 to send from Chrome using the old GCM mode:
-```pythonstub
+
+```python
 WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
 ```
 
@@ -149,7 +154,7 @@ Encode the `data` for future use. On error, returns a `WebPushException`
 
 **Example**
 
-```pythonstub
+```python
 encoded_data = WebPush(subscription_info).encode(data)
 ```
 
