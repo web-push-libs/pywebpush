@@ -1,6 +1,7 @@
-[![Build_Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master)](https://travis-ci.org/web-push-libs/pywebpush)
+[![Build
+Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master)](https://travis-ci.org/web-push-libs/pywebpush)
 [![Requirements
-Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=feat%2F44)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master)
+Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master)
 
 # Webpush Data encryption library for Python
 
@@ -61,8 +62,12 @@ in the `subscription_info` block.
 *data* - can be any serial content (string, bit array, serialized JSON, etc), but be sure that your receiving
 application is able to parse and understand it. (e.g. `data = "Mary had a little lamb."`)
 
+*content_type* - specifies the form of Encryption to use, either `'aesgcm'` or the newer `'aes128gcm'`. NOTE that 
+not all User Agents can decrypt `'aes128gcm'`, so the library defaults to the older form.
+
 *vapid_claims* - a `dict` containing the VAPID claims required for authorization (See
-[py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details)
+[py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details). If `aud` is not specified,
+pywebpush will attempt to auto-fill from the `endpoint`.
 
 *vapid_private_key* - Either a path to a VAPID EC2 private key PEM file, or a string containing the DER representation.
 (See [py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details.) The `private_key` may be

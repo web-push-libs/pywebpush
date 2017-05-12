@@ -13,8 +13,9 @@ except ImportError:  # pragma nocover
 
 import six
 import http_ece
-import pyelliptic
 import requests
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
 
 
@@ -112,7 +113,7 @@ class WebPusher:
             keys = self.subscription_info['keys']
             for k in ['p256dh', 'auth']:
                 if keys.get(k) is None:
-                    raise WebPushException("Missing keys value: %s", k)
+                    raise WebPushException("Missing keys value: {}".format(k))
                 if isinstance(keys[k], six.string_types):
                     keys[k] = bytes(keys[k].encode('utf8'))
             receiver_raw = base64.urlsafe_b64decode(
@@ -155,31 +156,25 @@ class WebPusher:
             salt = os.urandom(16)
         # The server key is an ephemeral ECDH key used only for this
         # transaction
-        server_key = pyelliptic.ECC(curve="prime256v1")
-        # the ID is the base64 of the raw key, minus the leading "\x04"
-        # ID tag.
-        server_key_id = base64.urlsafe_b64encode(server_key.get_pubkey()[1:])
+        server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
+        crypto_key = base64.urlsafe_b64encode(
+            server_key.public_key().public_numbers().encode_point()
+        ).strip(b'=')
 
         if isinstance(data, six.string_types):
             data = bytes(data.encode('utf8'))
 
-        key_id = server_key_id.decode('utf8')
-        # http_ece requires that these both be set BEFORE encrypt or
-        # decrypt is called if you specify the key as "dh".
-        http_ece.keys[key_id] = server_key
-        http_ece.labels[key_id] = "P-256"
-
         encrypted = http_ece.encrypt(
             data,
             salt=salt,
-            keyid=key_id,
+            keyid=crypto_key.decode(),
+            private_key=server_key,
             dh=self.receiver_key,
-            authSecret=self.auth_key,
+            auth_secret=self.auth_key,
             version=content_encoding)
 
         reply = CaseInsensitiveDict({
-            'crypto_key': base64.urlsafe_b64encode(
-                server_key.get_pubkey()).strip(b'='),
+            'crypto_key': crypto_key,
             'body': encrypted,
         })
         if salt:
@@ -329,7 +324,7 @@ def webpush(subscription_info,
     :type subscription_info: dict
     :param data: Serialized data to send
     :type data: str
-    :param vapid_private_key: Dath to vapid private key PEM or encoded str
+    :param vapid_private_key: Path to vapid private key PEM or encoded str
     :type vapid_private_key: str
     :param vapid_claims: Dictionary of claims ('sub' required)
     :type vapid_claims: dict
@@ -344,16 +339,17 @@ def webpush(subscription_info,
     if vapid_claims:
         if not vapid_claims.get('aud'):
             url = urlparse(subscription_info.get('endpoint'))
-            aud = "{}://{}/".format(url.scheme, url.netloc)
+            aud = "{}://{}".format(url.scheme, url.netloc)
             vapid_claims['aud'] = aud
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if os.path.isfile(vapid_private_key):
             # Presume that key from file is handled correctly by
             # py_vapid.
-            vv = Vapid(private_key_file=vapid_private_key)  # pragma no cover
+            vv = Vapid.from_file(
+                private_key_file=vapid_private_key)  # pragma no cover
         else:
-            vv = Vapid(private_key=vapid_private_key)
+            vv = Vapid.from_raw(private_raw=vapid_private_key.encode())
         vapid_headers = vv.sign(vapid_claims)
     result = WebPusher(subscription_info).send(
         data,
@@ -362,6 +358,6 @@ def webpush(subscription_info,
         curl=curl,
     )
     if not curl and result.status_code > 202:
-        raise WebPushException("Push failed: {}:".format(
+        raise WebPushException("Push failed: {}: {}".format(
             result, result.text))
     return result
