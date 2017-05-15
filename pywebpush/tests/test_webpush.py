@@ -265,7 +265,7 @@ class WebpushTestCase(unittest.TestCase):
             "-H \"crypto-key: p256ecdsa=",
             "-H \"content-encoding: aesgcm\"",
             "-H \"authorization: WebPush ",
-            "-H \"encryption: keyid=p256dh;salt=",
+            "-H \"encryption: salt=",
             "-H \"ttl: 0\"",
             "-H \"content-length:"
         ]:

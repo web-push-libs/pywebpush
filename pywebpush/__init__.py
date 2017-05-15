@@ -249,13 +249,11 @@ class WebPusher:
                 # use ';' instead of ',' to append the headers.
                 # see https://github.com/webpush-wg/webpush-encryption/issues/6
                 crypto_key += ';'
-            crypto_key += (
-                "keyid=p256dh;dh=" + encoded["crypto_key"].decode('utf8'))
+            crypto_key += ("dh=" + encoded["crypto_key"].decode('utf8'))
             headers.update({
                 'crypto-key': crypto_key,
                 'content-encoding': content_encoding,
-                'encryption': "keyid=p256dh;salt=" +
-                encoded['salt'].decode('utf8'),
+                'encryption': "salt=" + encoded['salt'].decode('utf8'),
             })
         if gcm_key:
             endpoint = 'https://android.googleapis.com/gcm/send'
