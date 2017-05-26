@@ -12,7 +12,7 @@ Installation
 
 You'll need to run ``python virtualenv``. Then
 
-.. code:: commandline
+::
 
     bin/pip install -r requirements.txt
     bin/python setup.py develop
@@ -43,14 +43,14 @@ Sending Data using ``webpush()`` One Call
 In many cases, your code will be sending a single message to many
 recipients. There's a "One Call" function which will make things easier.
 
-.. code:: pythonstub
+.. code:: python
 
-        from pywebpush import webpush
+    from pywebpush import webpush
 
-        webpush(subscription_info,
-                data,
-                vapid_private_key="Private Key or File Path[1]",
-                vapid_claims={"sub": "mailto:YourEmailAddress"})
+    webpush(subscription_info,
+            data,
+            vapid_private_key="Private Key or File Path[1]",
+            vapid_claims={"sub": "mailto:YourEmailAddress"})
 
 This will encode ``data``, add the appropriate VAPID auth headers if
 required and send it to the push server identified in the
@@ -84,13 +84,13 @@ file.
 
 e.g. the output of:
 
-.. code:: commandline
+::
 
     openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 
 **Example**
 
-.. code:: pythonstub
+.. code:: python
 
     from pywebpush import webpush, WebPushException
 
@@ -153,7 +153,7 @@ purposes.
 
 to send from Chrome using the old GCM mode:
 
-.. code:: pythonstub
+.. code:: python
 
     WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
 
@@ -171,7 +171,7 @@ Encode the ``data`` for future use. On error, returns a
 
 **Example**
 
-.. code:: pythonstub
+.. code:: python
 
     encoded_data = WebPush(subscription_info).encode(data)
 
