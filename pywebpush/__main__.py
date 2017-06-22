@@ -56,7 +56,7 @@ def main():
             content_encoding=args.encoding)
         print(result)
     except Exception as ex:
-        print("ERROR: {}".format(ex))
+        print("ERROR: {!r}".format(ex))
 
 
 if __name__ == "__main__":
