@@ -75,6 +75,7 @@ class WebpushTestCase(unittest.TestCase):
 
         push = WebPusher(subscription_info)
         eq_(push.subscription_info, subscription_info)
+        eq_(push.aud, "https://example.com")
         eq_(push.receiver_key, rk_decode)
         eq_(push.auth_key, b'\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc')
 

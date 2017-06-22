@@ -108,6 +108,10 @@ class WebPusher:
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
         self.subscription_info = subscription_info
+
+        aud_parsed = urlparse(self.subscription_info['endpoint'])
+        self.aud = ("{}://{}").format(aud_parsed.scheme, aud_parsed.netloc)
+
         self.auth_key = self.receiver_key = None
         if 'keys' in subscription_info:
             keys = self.subscription_info['keys']
@@ -333,12 +337,11 @@ def webpush(subscription_info,
     :return requests.Response or string
 
     """
+    pusher_obj = WebPusher(subscription_info)
     vapid_headers = None
     if vapid_claims:
         if not vapid_claims.get('aud'):
-            url = urlparse(subscription_info.get('endpoint'))
-            aud = "{}://{}".format(url.scheme, url.netloc)
-            vapid_claims['aud'] = aud
+            vapid_claims['aud'] = pusher_obj.aud
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if os.path.isfile(vapid_private_key):
@@ -349,7 +352,7 @@ def webpush(subscription_info,
         else:
             vv = Vapid.from_raw(private_raw=vapid_private_key.encode())
         vapid_headers = vv.sign(vapid_claims)
-    result = WebPusher(subscription_info).send(
+    result = pusher_obj.send(
         data,
         vapid_headers,
         content_encoding=content_encoding,
