@@ -108,6 +108,10 @@ class WebPusher:
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
         self.subscription_info = subscription_info
+
+        aud_parsed = urlparse(self.subscription_info['endpoint'])
+        self.aud = ("{}://{}").format(aud_parsed.scheme, aud_parsed.netloc)
+
         self.auth_key = self.receiver_key = None
         if 'keys' in subscription_info:
             keys = self.subscription_info['keys']
