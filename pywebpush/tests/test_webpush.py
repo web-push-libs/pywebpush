@@ -94,11 +94,12 @@ class WebpushTestCase(unittest.TestCase):
             """
             # Convert these b64 strings into their raw, binary form.
             raw_salt = None
+            raw_dh = None
             if 'salt' in encoded:
                 raw_salt = base64.urlsafe_b64decode(
                     push._repad(encoded['salt']))
-            raw_dh = base64.urlsafe_b64decode(
-                push._repad(encoded['crypto_key']))
+            if 'crypto_key' in encoded:
+                raw_dh = encoded['crypto_key']
             raw_auth = base64.urlsafe_b64decode(
                 push._repad(subscription_info['keys']['auth']))
 
