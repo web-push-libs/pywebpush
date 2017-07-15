@@ -210,7 +210,7 @@ class WebPusher:
             data = "--data-binary @encrypted.data"
         if 'content-length' not in headers:
             header_list.append(
-                '-H "content-length: {}" \\ \n'.format(len(data)))
+                '-H "content-length: {}" \\ \n'.format(len(encoded_data) if encoded_data else 0))
         return ("""curl -vX POST {url} \\\n{headers}{data}""".format(
             url=endpoint, headers="".join(header_list), data=data))
 
