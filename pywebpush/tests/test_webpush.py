@@ -294,3 +294,13 @@ class WebpushTestCase(unittest.TestCase):
         eq_(pdata["registration_ids"][0], "regid123")
         eq_(pheaders.get("authorization"), "key=gcm_key_value")
         eq_(pheaders.get("content-type"), "application/json")
+
+    @patch("requests.post")
+    def test_timeout(self, mock_post):
+        mock_post.return_value = Mock()
+        mock_post.return_value.status_code = 200
+        subscription_info = self._gen_subscription_info()
+        WebPusher(subscription_info).send(timeout=5.2)
+        eq_(mock_post.call_args[1].get('timeout'), 5.2)
+        webpush(subscription_info, timeout=10.001)
+        eq_(mock_post.call_args[1].get('timeout'), 10.001)
