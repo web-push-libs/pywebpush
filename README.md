@@ -112,7 +112,7 @@ can pass just `wp = WebPusher(subscription_info)`. This will return a `WebPusher
 
 The following methods are available:
 
-#### `.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aesgcm", curl=False)`
+#### `.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aesgcm", curl=False, timeout=None)`
 
 Send the data using additional parameters. On error, returns a `WebPushException`
 
@@ -133,6 +133,9 @@ Developer Console.
 
 *curl* Do not execute the POST, but return as a `curl` command. This will write the encrypted content to a local file
 named `encrpypted.data`. This command is meant to be used for debugging purposes.
+
+*timeout* timeout for requests POST query.
+See [requests documentation](http://docs.python-requests.org/en/master/user/quickstart/#timeouts).
 
 **Example**
 

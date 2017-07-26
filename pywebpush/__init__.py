@@ -212,7 +212,7 @@ class WebPusher:
             url=endpoint, headers="".join(header_list), data=data))
 
     def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
-             content_encoding="aesgcm", curl=False):
+             content_encoding="aesgcm", curl=False, timeout=None):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -233,6 +233,8 @@ class WebPusher:
         :type content_encoding: str
         :param curl: Display output as `curl` command instead of sending
         :type curl: bool
+        :param timeout: POST requests timeout
+        :type timeout: float or tuple
 
         """
         # Encode the data.
@@ -285,7 +287,8 @@ class WebPusher:
             return self.as_curl(endpoint, encoded_data, headers)
         return requests.post(endpoint,
                              data=encoded_data,
-                             headers=headers)
+                             headers=headers,
+                             timeout=timeout)
 
 
 def webpush(subscription_info,
@@ -293,7 +296,8 @@ def webpush(subscription_info,
             vapid_private_key=None,
             vapid_claims=None,
             content_encoding="aesgcm",
-            curl=False):
+            curl=False,
+            timeout=None):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -330,6 +334,8 @@ def webpush(subscription_info,
     :type content_encoding: str
     :param curl: Return as "curl" string instead of sending
     :type curl: bool
+    :param timeout: POST requests timeout
+    :type timeout: float or tuple
     :return requests.Response or string
 
     """
@@ -354,6 +360,7 @@ def webpush(subscription_info,
         vapid_headers,
         content_encoding=content_encoding,
         curl=curl,
+        timeout=timeout,
     )
     if not curl and result.status_code > 202:
         raise WebPushException("Push failed: {}: {}".format(
