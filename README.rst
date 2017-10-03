@@ -121,8 +121,8 @@ object.
 
 The following methods are available:
 
-``.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aesgcm", curl=False)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aesgcm", curl=False, timeout=None)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Send the data using additional parameters. On error, returns a
 ``WebPushException``
@@ -148,6 +148,9 @@ endpoint if not specified)
 will write the encrypted content to a local file named
 ``encrpypted.data``. This command is meant to be used for debugging
 purposes.
+
+*timeout* timeout for requests POST query. See `requests
+documentation <http://docs.python-requests.org/en/master/user/quickstart/#timeouts>`__.
 
 **Example**
 
