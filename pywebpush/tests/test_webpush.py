@@ -3,7 +3,7 @@ import json
 import os
 import unittest
 
-from mock import patch, Mock
+from mock import patch
 from nose.tools import eq_, ok_, assert_raises
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -138,7 +138,6 @@ class WebpushTestCase(unittest.TestCase):
 
     @patch("requests.post")
     def test_send_vapid(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 200
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
@@ -170,7 +169,6 @@ class WebpushTestCase(unittest.TestCase):
 
     @patch("requests.post")
     def test_send_bad_vapid_no_key(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 200
 
         subscription_info = self._gen_subscription_info()
@@ -187,7 +185,6 @@ class WebpushTestCase(unittest.TestCase):
 
     @patch("requests.post")
     def test_send_bad_vapid_bad_return(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 410
 
         subscription_info = self._gen_subscription_info()
@@ -297,7 +294,6 @@ class WebpushTestCase(unittest.TestCase):
 
     @patch("requests.post")
     def test_timeout(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 200
         subscription_info = self._gen_subscription_info()
         WebPusher(subscription_info).send(timeout=5.2)
