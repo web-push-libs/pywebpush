@@ -8,6 +8,7 @@ from nose.tools import eq_, ok_, assert_raises
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.backends import default_backend
+import py_vapid
 
 from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict, webpush
 
@@ -166,6 +167,23 @@ class WebpushTestCase(unittest.TestCase):
         ok_('p256ecdsa=' in ckey)
         ok_('dh=' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+    @patch.object(WebPusher, "send")
+    @patch.object(py_vapid.Vapid, "sign")
+    def test_webpush_vapid_instance(self, vapid_sign, pusher_send):
+        pusher_send.return_value.status_code = 200
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
+        claims = dict(sub="mailto:ops@example.com", aud="https://example.com")
+        webpush(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=vapid_key,
+            vapid_claims=claims,
+        )
+        vapid_sign.assert_called_once_with(claims)
+        pusher_send.assert_called_once()
 
     @patch("requests.post")
     def test_send_bad_vapid_no_key(self, mock_post):
