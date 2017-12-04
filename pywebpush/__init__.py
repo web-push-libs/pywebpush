@@ -326,8 +326,9 @@ def webpush(subscription_info,
     :type subscription_info: dict
     :param data: Serialized data to send
     :type data: str
-    :param vapid_private_key: Path to vapid private key PEM or encoded str
-    :type vapid_private_key: str
+    :param vapid_private_key: Vapid instance or path to vapid private key PEM \
+                              or encoded str
+    :type vapid_private_key: Union[Vapid, str]
     :param vapid_claims: Dictionary of claims ('sub' required)
     :type vapid_claims: dict
     :param content_encoding: Optional content type string
@@ -347,7 +348,9 @@ def webpush(subscription_info,
             vapid_claims['aud'] = aud
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
-        if os.path.isfile(vapid_private_key):
+        if isinstance(vapid_private_key, Vapid):
+            vv = vapid_private_key
+        elif os.path.isfile(vapid_private_key):
             # Presume that key from file is handled correctly by
             # py_vapid.
             vv = Vapid.from_file(
