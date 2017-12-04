@@ -353,7 +353,7 @@ def webpush(subscription_info,
             vv = Vapid.from_file(
                 private_key_file=vapid_private_key)  # pragma no cover
         else:
-            vv = Vapid.from_raw(private_raw=vapid_private_key.encode())
+            vv = Vapid.from_string(private_key=vapid_private_key)
         vapid_headers = vv.sign(vapid_claims)
     result = WebPusher(subscription_info).send(
         data,
