@@ -318,3 +318,21 @@ class WebpushTestCase(unittest.TestCase):
         eq_(mock_post.call_args[1].get('timeout'), 5.2)
         webpush(subscription_info, timeout=10.001)
         eq_(mock_post.call_args[1].get('timeout'), 10.001)
+
+    @patch("requests.Session")
+    def test_send_using_requests_session(self, mock_session):
+        subscription_info = self._gen_subscription_info()
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        data = "Mary had a little lamb"
+        WebPusher(subscription_info,
+                  requests_session=mock_session).send(data, headers)
+        eq_(subscription_info.get('endpoint'),
+            mock_session.post.call_args[0][0])
+        pheaders = mock_session.post.call_args[1].get('headers')
+        eq_(pheaders.get('ttl'), '0')
+        ok_('encryption' in pheaders)
+        eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
+        ckey = pheaders.get('crypto-key')
+        ok_('pre-existing' in ckey)
+        eq_(pheaders.get('content-encoding'), 'aesgcm')

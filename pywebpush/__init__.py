@@ -95,7 +95,7 @@ class WebPusher:
         "aes128gcm"  # draft-httpbis-encryption-encoding-04
     ]
 
-    def __init__(self, subscription_info):
+    def __init__(self, subscription_info, requests_session=None):
         """Initialize using the info provided by the client PushSubscription
         object (See
         https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe)
@@ -104,7 +104,16 @@ class WebPusher:
             the client.
         :type subscription_info: dict
 
+        :param requests_session: a requests.Session object to optimize requests
+            to the same client.
+        :type requests_session: requests.Session
+
         """
+        if requests_session is None:
+            self.requests_method = requests
+        else:
+            self.requests_method = requests_session
+
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
         self.subscription_info = subscription_info
@@ -285,10 +294,10 @@ class WebPusher:
         # Authorization / Crypto-Key (VAPID headers)
         if curl:
             return self.as_curl(endpoint, encoded_data, headers)
-        return requests.post(endpoint,
-                             data=encoded_data,
-                             headers=headers,
-                             timeout=timeout)
+        return self.requests_method.post(endpoint,
+                                         data=encoded_data,
+                                         headers=headers,
+                                         timeout=timeout)
 
 
 def webpush(subscription_info,
