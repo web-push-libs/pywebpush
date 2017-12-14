@@ -295,9 +295,9 @@ class WebPusher:
         if curl:
             return self.as_curl(endpoint, encoded_data, headers)
         return self.requests_method.post(endpoint,
-                             data=encoded_data,
-                             headers=headers,
-                             timeout=timeout)
+                                         data=encoded_data,
+                                         headers=headers,
+                                         timeout=timeout)
 
 
 def webpush(subscription_info,

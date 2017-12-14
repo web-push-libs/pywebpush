@@ -325,8 +325,10 @@ class WebpushTestCase(unittest.TestCase):
         headers = {"Crypto-Key": "pre-existing",
                    "Authentication": "bearer vapid"}
         data = "Mary had a little lamb"
-        WebPusher(subscription_info, requests_session=mock_session).send(data, headers)
-        eq_(subscription_info.get('endpoint'), mock_session.post.call_args[0][0])
+        WebPusher(subscription_info,
+                  requests_session=mock_session).send(data, headers)
+        eq_(subscription_info.get('endpoint'),
+            mock_session.post.call_args[0][0])
         pheaders = mock_session.post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), '0')
         ok_('encryption' in pheaders)
