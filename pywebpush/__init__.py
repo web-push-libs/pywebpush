@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import base64
+from copy import deepcopy
 import json
 import os
 
@@ -116,7 +117,7 @@ class WebPusher:
 
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
-        self.subscription_info = subscription_info
+        self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
         if 'keys' in subscription_info:
             keys = self.subscription_info['keys']

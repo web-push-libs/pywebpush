@@ -4,7 +4,7 @@ import os
 import unittest
 
 from mock import patch
-from nose.tools import eq_, ok_, assert_raises
+from nose.tools import eq_, ok_, assert_is_not, assert_raises
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.backends import default_backend
@@ -75,7 +75,10 @@ class WebpushTestCase(unittest.TestCase):
              "keys": {'p256dh': 'AAA=', 'auth': 'AAA='}})
 
         push = WebPusher(subscription_info)
-        eq_(push.subscription_info, subscription_info)
+        assert_is_not(push.subscription_info, subscription_info)
+        assert_is_not(push.subscription_info['keys'],
+                      subscription_info['keys'])
+        eq_(push.subscription_info['endpoint'], subscription_info['endpoint'])
         eq_(push.receiver_key, rk_decode)
         eq_(push.auth_key, b'\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc')
 
