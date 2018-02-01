@@ -307,7 +307,8 @@ def webpush(subscription_info,
             vapid_claims=None,
             content_encoding="aesgcm",
             curl=False,
-            timeout=None):
+            timeout=None,
+            ttl=0):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -347,6 +348,8 @@ def webpush(subscription_info,
     :type curl: bool
     :param timeout: POST requests timeout
     :type timeout: float or tuple
+    :param ttl: Time To Live
+    :type ttl: int
     :return requests.Response or string
 
     """
@@ -371,6 +374,7 @@ def webpush(subscription_info,
     result = WebPusher(subscription_info).send(
         data,
         vapid_headers,
+        ttl=ttl,
         content_encoding=content_encoding,
         curl=curl,
         timeout=timeout,
