@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import base64
+from copy import deepcopy
 import json
 import os
 
@@ -95,7 +96,7 @@ class WebPusher:
         "aes128gcm"  # draft-httpbis-encryption-encoding-04
     ]
 
-    def __init__(self, subscription_info):
+    def __init__(self, subscription_info, requests_session=None):
         """Initialize using the info provided by the client PushSubscription
         object (See
         https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe)
@@ -104,10 +105,19 @@ class WebPusher:
             the client.
         :type subscription_info: dict
 
+        :param requests_session: a requests.Session object to optimize requests
+            to the same client.
+        :type requests_session: requests.Session
+
         """
+        if requests_session is None:
+            self.requests_method = requests
+        else:
+            self.requests_method = requests_session
+
         if 'endpoint' not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
-        self.subscription_info = subscription_info
+        self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
         if 'keys' in subscription_info:
             keys = self.subscription_info['keys']
@@ -212,7 +222,7 @@ class WebPusher:
             url=endpoint, headers="".join(header_list), data=data))
 
     def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
-             content_encoding="aesgcm", curl=False):
+             content_encoding="aesgcm", curl=False, timeout=None):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -233,6 +243,8 @@ class WebPusher:
         :type content_encoding: str
         :param curl: Display output as `curl` command instead of sending
         :type curl: bool
+        :param timeout: POST requests timeout
+        :type timeout: float or tuple
 
         """
         # Encode the data.
@@ -283,9 +295,10 @@ class WebPusher:
         # Authorization / Crypto-Key (VAPID headers)
         if curl:
             return self.as_curl(endpoint, encoded_data, headers)
-        return requests.post(endpoint,
-                             data=encoded_data,
-                             headers=headers)
+        return self.requests_method.post(endpoint,
+                                         data=encoded_data,
+                                         headers=headers,
+                                         timeout=timeout)
 
 
 def webpush(subscription_info,
@@ -293,7 +306,9 @@ def webpush(subscription_info,
             vapid_private_key=None,
             vapid_claims=None,
             content_encoding="aesgcm",
-            curl=False):
+            curl=False,
+            timeout=None,
+            ttl=0):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -322,14 +337,19 @@ def webpush(subscription_info,
     :type subscription_info: dict
     :param data: Serialized data to send
     :type data: str
-    :param vapid_private_key: Path to vapid private key PEM or encoded str
-    :type vapid_private_key: str
+    :param vapid_private_key: Vapid instance or path to vapid private key PEM \
+                              or encoded str
+    :type vapid_private_key: Union[Vapid, str]
     :param vapid_claims: Dictionary of claims ('sub' required)
     :type vapid_claims: dict
     :param content_encoding: Optional content type string
     :type content_encoding: str
     :param curl: Return as "curl" string instead of sending
     :type curl: bool
+    :param timeout: POST requests timeout
+    :type timeout: float or tuple
+    :param ttl: Time To Live
+    :type ttl: int
     :return requests.Response or string
 
     """
@@ -341,19 +361,23 @@ def webpush(subscription_info,
             vapid_claims['aud'] = aud
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
-        if os.path.isfile(vapid_private_key):
+        if isinstance(vapid_private_key, Vapid):
+            vv = vapid_private_key
+        elif os.path.isfile(vapid_private_key):
             # Presume that key from file is handled correctly by
             # py_vapid.
             vv = Vapid.from_file(
                 private_key_file=vapid_private_key)  # pragma no cover
         else:
-            vv = Vapid.from_raw(private_raw=vapid_private_key.encode())
+            vv = Vapid.from_string(private_key=vapid_private_key)
         vapid_headers = vv.sign(vapid_claims)
     result = WebPusher(subscription_info).send(
         data,
         vapid_headers,
+        ttl=ttl,
         content_encoding=content_encoding,
         curl=curl,
+        timeout=timeout,
     )
     if not curl and result.status_code > 202:
         raise WebPushException("Push failed: {}: {}".format(

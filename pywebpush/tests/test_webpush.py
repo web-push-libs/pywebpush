@@ -3,11 +3,12 @@ import json
 import os
 import unittest
 
-from mock import patch, Mock
-from nose.tools import eq_, ok_, assert_raises
+from mock import patch
+from nose.tools import eq_, ok_, assert_is_not, assert_raises
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.backends import default_backend
+import py_vapid
 
 from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict, webpush
 
@@ -74,7 +75,10 @@ class WebpushTestCase(unittest.TestCase):
              "keys": {'p256dh': 'AAA=', 'auth': 'AAA='}})
 
         push = WebPusher(subscription_info)
-        eq_(push.subscription_info, subscription_info)
+        assert_is_not(push.subscription_info, subscription_info)
+        assert_is_not(push.subscription_info['keys'],
+                      subscription_info['keys'])
+        eq_(push.subscription_info['endpoint'], subscription_info['endpoint'])
         eq_(push.receiver_key, rk_decode)
         eq_(push.auth_key, b'\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc')
 
@@ -138,7 +142,6 @@ class WebpushTestCase(unittest.TestCase):
 
     @patch("requests.post")
     def test_send_vapid(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 200
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
@@ -168,9 +171,25 @@ class WebpushTestCase(unittest.TestCase):
         ok_('dh=' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
 
+    @patch.object(WebPusher, "send")
+    @patch.object(py_vapid.Vapid, "sign")
+    def test_webpush_vapid_instance(self, vapid_sign, pusher_send):
+        pusher_send.return_value.status_code = 200
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
+        claims = dict(sub="mailto:ops@example.com", aud="https://example.com")
+        webpush(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=vapid_key,
+            vapid_claims=claims,
+        )
+        vapid_sign.assert_called_once_with(claims)
+        pusher_send.assert_called_once()
+
     @patch("requests.post")
     def test_send_bad_vapid_no_key(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 200
 
         subscription_info = self._gen_subscription_info()
@@ -187,7 +206,6 @@ class WebpushTestCase(unittest.TestCase):
 
     @patch("requests.post")
     def test_send_bad_vapid_bad_return(self, mock_post):
-        mock_post.return_value = Mock()
         mock_post.return_value.status_code = 410
 
         subscription_info = self._gen_subscription_info()
@@ -294,3 +312,30 @@ class WebpushTestCase(unittest.TestCase):
         eq_(pdata["registration_ids"][0], "regid123")
         eq_(pheaders.get("authorization"), "key=gcm_key_value")
         eq_(pheaders.get("content-type"), "application/json")
+
+    @patch("requests.post")
+    def test_timeout(self, mock_post):
+        mock_post.return_value.status_code = 200
+        subscription_info = self._gen_subscription_info()
+        WebPusher(subscription_info).send(timeout=5.2)
+        eq_(mock_post.call_args[1].get('timeout'), 5.2)
+        webpush(subscription_info, timeout=10.001)
+        eq_(mock_post.call_args[1].get('timeout'), 10.001)
+
+    @patch("requests.Session")
+    def test_send_using_requests_session(self, mock_session):
+        subscription_info = self._gen_subscription_info()
+        headers = {"Crypto-Key": "pre-existing",
+                   "Authentication": "bearer vapid"}
+        data = "Mary had a little lamb"
+        WebPusher(subscription_info,
+                  requests_session=mock_session).send(data, headers)
+        eq_(subscription_info.get('endpoint'),
+            mock_session.post.call_args[0][0])
+        pheaders = mock_session.post.call_args[1].get('headers')
+        eq_(pheaders.get('ttl'), '0')
+        ok_('encryption' in pheaders)
+        eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
+        ckey = pheaders.get('crypto-key')
+        ok_('pre-existing' in ckey)
+        eq_(pheaders.get('content-encoding'), 'aesgcm')
