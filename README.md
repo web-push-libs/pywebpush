@@ -98,7 +98,7 @@ try:
         data="Mary had a little lamb, with a nice mint jelly",
         vapid_private_key="path/to/vapid_private.pem",
         vapid_claims={
-                "sub": "YourNameHere@example.org",
+                "sub": "mailto:YourNameHere@example.org",
             }
     )
 except WebPushException as ex:
