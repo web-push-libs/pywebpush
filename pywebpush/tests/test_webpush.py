@@ -3,7 +3,7 @@ import json
 import os
 import unittest
 
-from mock import patch
+from mock import patch, Mock
 from nose.tools import eq_, ok_, assert_is_not, assert_raises
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -339,3 +339,32 @@ class WebpushTestCase(unittest.TestCase):
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+
+
+class WebpushExceptionTestCase(unittest.TestCase):
+
+    def test_exception(self):
+        from requests import Response
+
+        exp = WebPushException("foo")
+        assert ("{}".format(exp) == "WebPushException: foo")
+        # Really should try to load the response to verify, but this mock
+        # covers what we need.
+        response = Mock(spec=Response)
+        response.text = (
+             '{"code": 401, "errno": 109, "error": '
+             '"Unauthorized", "more_info": "http://'
+             'autopush.readthedocs.io/en/latest/htt'
+             'p.html#error-codes", "message": "Requ'
+             'est did not validate missing authoriz'
+             'ation header"}')
+        response.json.return_value = json.loads(response.text)
+        response.status_code = 401
+        response.reason = "Unauthorized"
+        exp = WebPushException("foo", response)
+        assert "{}".format(exp) == "WebPushException: foo, Response {}".format(
+                response.text)
+        assert '{}'.format(exp.response), '<Response [401]>'
+        assert exp.response.json().get('errno') == 109
+        exp = WebPushException("foo", [1, 2, 3])
+        assert '{}'.format(exp) == "WebPushException: foo, Response [1, 2, 3]"
