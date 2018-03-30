@@ -24,6 +24,12 @@ class WebPushException(Exception):
     pass
 
 
+class WebPushResultException(WebPushException):
+    def __init__(self, message, result):
+        super().__init__(message)
+        self.result = result
+        
+        
 class CaseInsensitiveDict(dict):
     """A dictionary that has case-insensitive keys"""
 
@@ -380,6 +386,6 @@ def webpush(subscription_info,
         timeout=timeout,
     )
     if not curl and result.status_code > 202:
-        raise WebPushException("Push failed: {}: {}".format(
-            result, result.text))
+        raise WebPushResultException("Push failed: {}: {}".format(
+            result, result.text), result)
     return result
