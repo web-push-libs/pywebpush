@@ -65,7 +65,7 @@ in the `subscription_info` block.
 *data* - can be any serial content (string, bit array, serialized JSON, etc), but be sure that your receiving
 application is able to parse and understand it. (e.g. `data = "Mary had a little lamb."`)
 
-*content_type* - specifies the form of Encryption to use, either `'aesgcm'` or the newer `'aes128gcm'`. NOTE that 
+*content_type* - specifies the form of Encryption to use, either `'aesgcm'` or the newer `'aes128gcm'`. NOTE that
 not all User Agents can decrypt `'aes128gcm'`, so the library defaults to the older form.
 
 *vapid_claims* - a `dict` containing the VAPID claims required for authorization (See
@@ -103,6 +103,14 @@ try:
     )
 except WebPushException as ex:
     print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
+    # Mozilla returns additional information in the body of the response.
+    if ex.response and ex.response.json():
+        extra = ex.response.json()
+        print("Remote service replied with a {}:{}, {}",
+              extra.code,
+              extra.errno,
+              extra.message
+              )
 ```
 
 ### Methods

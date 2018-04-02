@@ -21,7 +21,26 @@ from py_vapid import Vapid
 
 
 class WebPushException(Exception):
-    pass
+    """Web Push failure.
+
+    This may contain the requests.Response
+
+    """
+
+    def __init__(self, message, response=None):
+        self.message = message
+        self.response = response
+
+    def __str__(self):
+        extra = ""
+        if self.response:
+            try:
+                extra = ", Response {}".format(
+                    self.response.text,
+                )
+            except AttributeError:
+                extra = ", Response {}".format(self.response)
+        return "WebPushException: {}{}".format(self.message, extra)
 
 
 class CaseInsensitiveDict(dict):
@@ -371,7 +390,7 @@ def webpush(subscription_info,
         else:
             vv = Vapid.from_string(private_key=vapid_private_key)
         vapid_headers = vv.sign(vapid_claims)
-    result = WebPusher(subscription_info).send(
+    response = WebPusher(subscription_info).send(
         data,
         vapid_headers,
         ttl=ttl,
@@ -379,7 +398,8 @@ def webpush(subscription_info,
         curl=curl,
         timeout=timeout,
     )
-    if not curl and result.status_code > 202:
-        raise WebPushException("Push failed: {}: {}".format(
-            result, result.text))
-    return result
+    if not curl and response.status_code > 202:
+        raise WebPushException("Push failed: {} {}".format(
+            response.status_code, response.reason),
+            response=response)
+    return response
