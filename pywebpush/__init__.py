@@ -379,7 +379,7 @@ def webpush(subscription_info,
             url = urlparse(subscription_info.get('endpoint'))
             aud = "{}://{}".format(url.scheme, url.netloc)
             vapid_claims['aud'] = aud
-        if not valid_claims.get('exp'):
+        if not vapid_claims.get('exp'):
             # encryption lives for 12 hours
             vapid_claims['exp'] = int(time.time()) + (12 * 60 * 60)
         if not vapid_private_key:
