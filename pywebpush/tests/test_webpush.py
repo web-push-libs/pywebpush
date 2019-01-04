@@ -134,11 +134,10 @@ class WebpushTestCase(unittest.TestCase):
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), '0')
-        ok_('encryption' in pheaders)
         eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
-        eq_(pheaders.get('content-encoding'), 'aesgcm')
+        eq_(pheaders.get('content-encoding'), 'aes128gcm')
 
     @patch("requests.post")
     def test_send_vapid(self, mock_post):
@@ -164,12 +163,11 @@ class WebpushTestCase(unittest.TestCase):
             ).decode('utf8')
         )
         ok_(subscription_info.get('endpoint').startswith(auth['aud']))
-        ok_('encryption' in pheaders)
         ok_('WebPush' in pheaders.get('authorization'))
         ckey = pheaders.get('crypto-key')
         ok_('p256ecdsa=' in ckey)
         ok_('dh=' in ckey)
-        eq_(pheaders.get('content-encoding'), 'aesgcm')
+        eq_(pheaders.get('content-encoding'), 'aes128gcm')
 
     @patch.object(WebPusher, "send")
     @patch.object(py_vapid.Vapid, "sign")
@@ -262,8 +260,7 @@ class WebpushTestCase(unittest.TestCase):
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), '0')
-        ok_('encryption' in pheaders)
-        eq_(pheaders.get('content-encoding'), 'aesgcm')
+        eq_(pheaders.get('content-encoding'), 'aes128gcm')
 
     @patch("pywebpush.open")
     def test_as_curl(self, opener):
@@ -281,9 +278,8 @@ class WebpushTestCase(unittest.TestCase):
         for s in [
             "curl -vX POST https://example.com",
             "-H \"crypto-key: p256ecdsa=",
-            "-H \"content-encoding: aesgcm\"",
+            "-H \"content-encoding: aes128gcm\"",
             "-H \"authorization: WebPush ",
-            "-H \"encryption: salt=",
             "-H \"ttl: 0\"",
             "-H \"content-length:"
         ]:
@@ -334,11 +330,10 @@ class WebpushTestCase(unittest.TestCase):
             mock_session.post.call_args[0][0])
         pheaders = mock_session.post.call_args[1].get('headers')
         eq_(pheaders.get('ttl'), '0')
-        ok_('encryption' in pheaders)
         eq_(pheaders.get('AUTHENTICATION'), headers.get('Authentication'))
         ckey = pheaders.get('crypto-key')
         ok_('pre-existing' in ckey)
-        eq_(pheaders.get('content-encoding'), 'aesgcm')
+        eq_(pheaders.get('content-encoding'), 'aes128gcm')
 
 
 class WebpushExceptionTestCase(unittest.TestCase):

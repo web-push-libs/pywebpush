@@ -3,20 +3,21 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "1.7.0"
+
+__version__ = "1.8.0"
 
 
 def read_from(file):
     reply = []
     with io.open(os.path.join(here, file), encoding='utf8') as f:
-        for l in f:
-            l = l.strip()
-            if not l:
+        for line in f:
+            line = line.strip()
+            if not line:
                 break
-            if l[:2] == '-r':
-                reply += read_from(l.split(' ')[1])
+            if line[:2] == '-r':
+                reply += read_from(line.split(' ')[1])
                 continue
-            if l[0] != '#' or l[:2] != '//':
+            if line[0] != '#' or line[:2] != '//':
                 reply.append(l)
     return reply
 
