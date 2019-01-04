@@ -66,8 +66,9 @@ etc), but be sure that your receiving application is able to parse and
 understand it. (e.g. ``data = "Mary had a little lamb."``)
 
 *content\_type* - specifies the form of Encryption to use, either
-``'aesgcm'`` or the newer ``'aes128gcm'``. NOTE that not all User Agents
-can decrypt ``'aes128gcm'``, so the library defaults to the older form.
+``'aes128gcm'`` or the deprecated ``'aesgcm'``. NOTE that not all User
+Agents can decrypt ``'aesgcm'``, so the library defaults to the RFC 8188
+standard form.
 
 *vapid\_claims* - a ``dict`` containing the VAPID claims required for
 authorization (See
@@ -129,8 +130,8 @@ object.
 
 The following methods are available:
 
-``.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aesgcm", curl=False, timeout=None)``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aes128gcm", curl=False, timeout=None)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Send the data using additional parameters. On error, returns a
 ``WebPushException``
@@ -150,7 +151,7 @@ system) This is the API key obtained from the Google Developer Console.
 *reg\_id* Google Cloud Messaging registration ID (will be extracted from
 endpoint if not specified)
 
-*content\_encoding* ECE content encoding type (defaults to "aesgcm")
+*content\_encoding* ECE content encoding type (defaults to "aes128gcm")
 
 *curl* Do not execute the POST, but return as a ``curl`` command. This
 will write the encrypted content to a local file named
@@ -168,8 +169,8 @@ to send from Chrome using the old GCM mode:
 
     WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
 
-``.encode(data, content_encoding="aesgcm")``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``.encode(data, content_encoding="aes128gcm")``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Encode the ``data`` for future use. On error, returns a
 ``WebPushException``
@@ -178,7 +179,7 @@ Encode the ``data`` for future use. On error, returns a
 
 *data* Binary string of data to send
 
-*content\_encoding* ECE content encoding type (defaults to "aesgcm")
+*content\_encoding* ECE content encoding type (defaults to "aes128gcm")
 
 **Example**
 
