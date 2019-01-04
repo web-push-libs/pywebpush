@@ -112,7 +112,7 @@ class WebPusher:
     valid_encodings = [
         # "aesgcm128",  # this is draft-0, but DO NOT USE.
         "aesgcm",  # draft-httpbis-encryption-encoding-01
-        "aes128gcm"  # draft-httpbis-encryption-encoding-04
+        "aes128gcm"  # RFC8188 Standard encoding
     ]
 
     def __init__(self, subscription_info, requests_session=None):
@@ -157,7 +157,7 @@ class WebPusher:
         """Add base64 padding to the end of a string, if required"""
         return data + b"===="[:len(data) % 4]
 
-    def encode(self, data, content_encoding="aesgcm"):
+    def encode(self, data, content_encoding="aes128gcm"):
         """Encrypt the data.
 
         :param data: A serialized block of byte data (String, JSON, bit array,
@@ -165,9 +165,8 @@ class WebPusher:
             to understand it.
         :type data: str
         :param content_encoding: The content_encoding type to use to encrypt
-            the data. Defaults to draft-01 "aesgcm". Latest draft-04 is
-            "aes128gcm", however not all clients may be able to use this
-            format.
+            the data. Defaults to RFC8188 "aes128gcm". The previous draft-01 is
+            "aesgcm", however this format is now deprecated.
         :type content_encoding: enum("aesgcm", "aes128gcm")
 
         """
@@ -241,7 +240,7 @@ class WebPusher:
             url=endpoint, headers="".join(header_list), data=data))
 
     def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
-             content_encoding="aesgcm", curl=False, timeout=None):
+             content_encoding="aes128gcm", curl=False, timeout=None):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -258,7 +257,7 @@ class WebPusher:
         :param reg_id: registration id of the recipient. If not provided,
             it will be extracted from the endpoint.
         :type reg_id: str
-        :param content_encoding: ECE content encoding (defaults to "aesgcm")
+        :param content_encoding: ECE content encoding (defaults to "aes128gcm")
         :type content_encoding: str
         :param curl: Display output as `curl` command instead of sending
         :type curl: bool
@@ -284,8 +283,11 @@ class WebPusher:
             headers.update({
                 'crypto-key': crypto_key,
                 'content-encoding': content_encoding,
-                'encryption': "salt=" + encoded['salt'].decode('utf8'),
             })
+            if encoded.get('salt'):
+                headers.update({
+                    'encryption': "salt=" + encoded['salt'].decode('utf8')
+                })
         if gcm_key:
             endpoint = 'https://android.googleapis.com/gcm/send'
             reg_ids = []
@@ -324,7 +326,7 @@ def webpush(subscription_info,
             data=None,
             vapid_private_key=None,
             vapid_claims=None,
-            content_encoding="aesgcm",
+            content_encoding="aes128gcm",
             curl=False,
             timeout=None,
             ttl=0):
