@@ -100,8 +100,10 @@ class WebpushTestCase(unittest.TestCase):
             if 'salt' in encoded:
                 raw_salt = base64.urlsafe_b64decode(
                     push._repad(encoded['salt']))
-            raw_dh = base64.urlsafe_b64decode(
-                push._repad(encoded['crypto_key']))
+            raw_dh = None
+            if content_encoding != "aes128gcm":
+                raw_dh = base64.urlsafe_b64decode(
+                    push._repad(encoded['crypto_key']))
             raw_auth = base64.urlsafe_b64decode(
                 push._repad(subscription_info['keys']['auth']))
 
@@ -148,7 +150,8 @@ class WebpushTestCase(unittest.TestCase):
             subscription_info=subscription_info,
             data=data,
             vapid_private_key=self.vapid_key,
-            vapid_claims={"sub": "mailto:ops@example.com"}
+            vapid_claims={"sub": "mailto:ops@example.com"},
+            content_encoding="aesgcm"
         )
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
@@ -167,7 +170,7 @@ class WebpushTestCase(unittest.TestCase):
         ckey = pheaders.get('crypto-key')
         ok_('p256ecdsa=' in ckey)
         ok_('dh=' in ckey)
-        eq_(pheaders.get('content-encoding'), 'aes128gcm')
+        eq_(pheaders.get('content-encoding'), 'aesgcm')
 
     @patch.object(WebPusher, "send")
     @patch.object(py_vapid.Vapid, "sign")
