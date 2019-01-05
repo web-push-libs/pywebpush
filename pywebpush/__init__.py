@@ -181,33 +181,42 @@ class WebPusher:
             raise WebPushException("Invalid content encoding specified. "
                                    "Select from " +
                                    json.dumps(self.valid_encodings))
-        if (content_encoding == "aesgcm"):
+        if content_encoding == "aesgcm":
             salt = os.urandom(16)
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
-        crypto_key = base64.urlsafe_b64encode(
-            server_key.public_key().public_numbers().encode_point()
-        ).strip(b'=')
+        crypto_key = server_key.public_key().public_numbers().encode_point()
 
         if isinstance(data, six.string_types):
             data = bytes(data.encode('utf8'))
-
-        encrypted = http_ece.encrypt(
-            data,
-            salt=salt,
-            keyid=crypto_key.decode(),
-            private_key=server_key,
-            dh=self.receiver_key,
-            auth_secret=self.auth_key,
-            version=content_encoding)
-
-        reply = CaseInsensitiveDict({
-            'crypto_key': crypto_key,
-            'body': encrypted,
-        })
-        if salt:
-            reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
+        if content_encoding == "aes128gcm":
+            encrypted = http_ece.encrypt(
+                data,
+                salt=salt,
+                private_key=server_key,
+                dh=self.receiver_key,
+                auth_secret=self.auth_key,
+                version=content_encoding)
+            reply = CaseInsensitiveDict({
+                'body': encrypted
+            })
+        else:
+            crypto_key = base64.urlsafe_b64encode(crypto_key).strip(b'=')
+            encrypted = http_ece.encrypt(
+                data,
+                salt=salt,
+                private_key=server_key,
+                keyid=crypto_key.decode(),
+                dh=self.receiver_key,
+                auth_secret=self.auth_key,
+                version=content_encoding)
+            reply = CaseInsensitiveDict({
+                'crypto_key': crypto_key,
+                'body': encrypted,
+            })
+            if salt:
+                reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
         return reply
 
     def as_curl(self, endpoint, encoded_data, headers):
@@ -236,7 +245,7 @@ class WebPusher:
             data = "--data-binary @encrypted.data"
         if 'content-length' not in headers:
             header_list.append(
-                '-H "content-length: {}" \\ \n'.format(len(data)))
+                '-H "content-length: {}" \\ \n'.format(len(encoded_data)))
         return ("""curl -vX POST {url} \\\n{headers}{data}""".format(
             url=endpoint, headers="".join(header_list), data=data))
 
@@ -272,23 +281,28 @@ class WebPusher:
         encoded = {}
         headers = CaseInsensitiveDict(headers)
         if data:
-            encoded = self.encode(data)
-            # Append the p256dh to the end of any existing crypto-key
-            crypto_key = headers.get("crypto-key", "")
-            if crypto_key:
-                # due to some confusion by a push service provider, we should
-                # use ';' instead of ',' to append the headers.
-                # see https://github.com/webpush-wg/webpush-encryption/issues/6
-                crypto_key += ';'
-            crypto_key += ("dh=" + encoded["crypto_key"].decode('utf8'))
-            headers.update({
-                'crypto-key': crypto_key,
-                'content-encoding': content_encoding,
-            })
-            if encoded.get('salt'):
+            encoded = self.encode(data, content_encoding)
+            if "crypto_key" in encoded:
+                # Append the p256dh to the end of any existing crypto-key
+                crypto_key = headers.get("crypto-key", "")
+                if crypto_key:
+                    # due to some confusion by a push service provider, we
+                    # should use ';' instead of ',' to append the headers.
+                    # see
+                    # https://github.com/webpush-wg/webpush-encryption/issues/6
+                    crypto_key += ';'
+                crypto_key += (
+                    "dh=" + encoded["crypto_key"].decode('utf8'))
+                headers.update({
+                    'crypto-key': crypto_key
+                })
+            if "salt" in encoded:
                 headers.update({
                     'encryption': "salt=" + encoded['salt'].decode('utf8')
                 })
+            headers.update({
+                'content-encoding': content_encoding,
+            })
         if gcm_key:
             endpoint = 'https://android.googleapis.com/gcm/send'
             reg_ids = []
