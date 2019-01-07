@@ -18,7 +18,7 @@ def read_from(file):
                 reply += read_from(line.split(' ')[1])
                 continue
             if line[0] != '#' or line[:2] != '//':
-                reply.append(l)
+                reply.append(line)
     return reply
 
 
