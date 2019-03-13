@@ -18,6 +18,7 @@ import http_ece
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import serialization
 from py_vapid import Vapid
 
 
@@ -186,7 +187,10 @@ class WebPusher:
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
-        crypto_key = server_key.public_key().public_numbers().encode_point()
+        crypto_key = server_key.public_key().public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
+        )
 
         if isinstance(data, six.string_types):
             data = bytes(data.encode('utf8'))

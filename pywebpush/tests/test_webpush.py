@@ -7,6 +7,7 @@ from mock import patch, Mock
 from nose.tools import eq_, ok_, assert_is_not, assert_raises
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 import py_vapid
 
@@ -38,8 +39,10 @@ class WebpushTestCase(unittest.TestCase):
 
     def _get_pubkey_str(self, priv_key):
         return base64.urlsafe_b64encode(
-            priv_key.public_key().public_numbers().encode_point()
-        ).strip(b'=')
+            priv_key.public_key().public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.UncompressedPoint
+            )).strip(b'=')
 
     def test_init(self):
         # use static values so we know what to look for in the reply
@@ -106,7 +109,6 @@ class WebpushTestCase(unittest.TestCase):
                     push._repad(encoded['crypto_key']))
             raw_auth = base64.urlsafe_b64decode(
                 push._repad(subscription_info['keys']['auth']))
-
             decoded = http_ece.decrypt(
                 encoded['body'],
                 salt=raw_salt,
