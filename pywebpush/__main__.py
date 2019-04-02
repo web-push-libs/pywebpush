@@ -14,7 +14,7 @@ def get_config():
     parser.add_argument("--key", help="Vapid private key file path")
     parser.add_argument("--curl", help="Don't send, display as curl command",
                         default=False, action="store_true")
-    parser.add_argument("--encoding", default="aesgcm")
+    parser.add_argument("--encoding", default="aes128gcm")
 
     args = parser.parse_args()
 
