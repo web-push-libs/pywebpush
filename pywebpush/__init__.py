@@ -309,7 +309,7 @@ class WebPusher:
             })
         if gcm_key:
             # guess if it is a legacy GCM project key or actual FCM key
-            # gcm keys are all about 40 chars (use 100 for confidence), 
+            # gcm keys are all about 40 chars (use 100 for confidence),
             # fcm keys are 153-175 chars
             if len(gcm_key) < 100:
                 endpoint = 'https://android.googleapis.com/gcm/send'
