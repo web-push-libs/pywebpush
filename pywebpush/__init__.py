@@ -308,7 +308,13 @@ class WebPusher:
                 'content-encoding': content_encoding,
             })
         if gcm_key:
-            endpoint = 'https://android.googleapis.com/gcm/send'
+            # guess if it is a legacy GCM project key or actual FCM key
+            # gcm keys are all about 40 chars (use 100 for confidence),
+            # fcm keys are 153-175 chars
+            if len(gcm_key) < 100:
+                endpoint = 'https://android.googleapis.com/gcm/send'
+            else:
+                endpoint = 'https://fcm.googleapis.com/fcm/send'
             reg_ids = []
             if not reg_id:
                 reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
