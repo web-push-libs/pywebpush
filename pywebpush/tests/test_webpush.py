@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import unittest
+import time
 
 from mock import patch, Mock
 from nose.tools import eq_, ok_, assert_is_not, assert_raises
@@ -190,6 +191,26 @@ class WebpushTestCase(unittest.TestCase):
         )
         vapid_sign.assert_called_once_with(claims)
         pusher_send.assert_called_once()
+
+    @patch.object(WebPusher, "send")
+    @patch.object(py_vapid.Vapid, "sign")
+    def test_webpush_vapid_exp(self, vapid_sign, pusher_send):
+        pusher_send.return_value.status_code = 200
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
+        claims = dict(sub="mailto:ops@example.com",
+                      aud="https://example.com",
+                      exp=int(time.time() - 48600))
+        webpush(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=vapid_key,
+            vapid_claims=claims,
+        )
+        vapid_sign.assert_called_once_with(claims)
+        pusher_send.assert_called_once()
+        ok_(claims['exp'] > int(time.time()))
 
     @patch("requests.post")
     def test_send_bad_vapid_no_key(self, mock_post):

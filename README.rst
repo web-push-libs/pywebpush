@@ -187,6 +187,37 @@ Encode the ``data`` for future use. On error, returns a
 
     encoded_data = WebPush(subscription_info).encode(data)
 
+Stand Alone Webpush
+-------------------
+
+If you're not really into coding your own solution, there's also a
+"stand-alone" ``pywebpush`` command in the ./bin directory.
+
+This uses two files: \* the *data* file, which contains the message to
+send, in whatever form you like. \* the *subscription info* file, which
+contains the subscription information as JSON encoded data. This is
+usually returned by the Push ``subscribe`` method and looks something
+like:
+
+.. code:: json
+
+    {"endpoint": "https://push...",
+     "keys": {
+         "auth": "ab01...",
+         "p256dh": "aa02..."
+     }}
+
+If you're interested in just testing your applications WebPush
+interface, you could use the Command Line:
+
+.. code:: bash
+
+    ./bin/pywebpush --data stuff_to_send.data --info subscription.info
+
+which will encrypt and send the contents of ``stuff_to_send.data``.
+
+See ``./bin/pywebpush --help`` for available commands and options.
+
 .. |Build Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
    :target: https://travis-ci.org/web-push-libs/pywebpush
 .. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master
