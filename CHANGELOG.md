@@ -1,3 +1,8 @@
+# I am terrible at keeping this up-to-date.
+
+## 1.9.4 (2019-05-09)
+bug: update vapid `exp` header if missing or expired
+
 ## 0.7.0 (2017-02-14)
 feat: update to http-ece 0.7.0 (with draft-06 support)
 feat: Allow empty payloads for send()
