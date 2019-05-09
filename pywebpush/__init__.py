@@ -405,7 +405,10 @@ def webpush(subscription_info,
             url = urlparse(subscription_info.get('endpoint'))
             aud = "{}://{}".format(url.scheme, url.netloc)
             vapid_claims['aud'] = aud
-        if not vapid_claims.get('exp'):
+        # Remember, passed structures are mutable in python.
+        # It's possible that a previously set `exp` field is no longer valid.
+        if (not vapid_claims.get('exp')
+                or vapid_claims.get('exp') < int(time.time())):
             # encryption lives for 12 hours
             vapid_claims['exp'] = int(time.time()) + (12 * 60 * 60)
         if not vapid_private_key:
