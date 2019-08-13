@@ -15,6 +15,8 @@ def get_config():
     parser.add_argument("--curl", help="Don't send, display as curl command",
                         default=False, action="store_true")
     parser.add_argument("--encoding", default="aes128gcm")
+    parser.add_argument("--verbose", "-v", help="Provide verbose feedback",
+                        default=False, action="store_true")
 
     args = parser.parse_args()
 
@@ -53,7 +55,8 @@ def main():
             vapid_private_key=args.key,
             vapid_claims=args.claims,
             curl=args.curl,
-            content_encoding=args.encoding)
+            content_encoding=args.encoding,
+            verbose=args.verbose)
         print(result)
     except Exception as ex:
         print("ERROR: {}".format(ex))

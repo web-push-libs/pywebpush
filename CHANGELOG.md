@@ -1,5 +1,9 @@
 # I am terrible at keeping this up-to-date.
 
+## 1.10.0 (2019-08-13)
+feat: Add `--verbose` flag with some initial commentary
+bug: Update tests to use latest VAPID version
+
 ## 1.9.4 (2019-05-09)
 bug: update vapid `exp` header if missing or expired
 

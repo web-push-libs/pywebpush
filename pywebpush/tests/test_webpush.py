@@ -169,9 +169,8 @@ class WebpushTestCase(unittest.TestCase):
             ).decode('utf8')
         )
         ok_(subscription_info.get('endpoint').startswith(auth['aud']))
-        ok_('WebPush' in pheaders.get('authorization'))
+        ok_('vapid' in pheaders.get('authorization'))
         ckey = pheaders.get('crypto-key')
-        ok_('p256ecdsa=' in ckey)
         ok_('dh=' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
 
@@ -303,13 +302,12 @@ class WebpushTestCase(unittest.TestCase):
         )
         for s in [
             "curl -vX POST https://example.com",
-            "-H \"crypto-key: p256ecdsa=",
             "-H \"content-encoding: aes128gcm\"",
-            "-H \"authorization: WebPush ",
+            "-H \"authorization: vapid ",
             "-H \"ttl: 0\"",
             "-H \"content-length:"
         ]:
-            ok_(s in result)
+            ok_(s in result, "missing: {}".format(s))
 
     def test_ci_dict(self):
         ci = CaseInsensitiveDict({"Foo": "apple", "bar": "banana"})
