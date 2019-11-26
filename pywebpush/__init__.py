@@ -152,7 +152,7 @@ class WebPusher:
             for k in ['p256dh', 'auth']:
                 if keys.get(k) is None:
                     raise WebPushException("Missing keys value: {}".format(k))
-                if isinstance(keys[k], six.string_types):
+                if isinstance(keys[k], six.text_type):
                     keys[k] = bytes(keys[k].encode('utf8'))
             receiver_raw = base64.urlsafe_b64decode(
                 self._repad(keys['p256dh']))
@@ -206,7 +206,7 @@ class WebPusher:
             format=serialization.PublicFormat.UncompressedPoint
         )
 
-        if isinstance(data, six.string_types):
+        if isinstance(data, six.text_type):
             data = bytes(data.encode('utf8'))
         if content_encoding == "aes128gcm":
             self.verb("Encrypting to aes128gcm...")
