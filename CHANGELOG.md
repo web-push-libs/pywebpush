@@ -1,5 +1,8 @@
 # I am terrible at keeping this up-to-date.
 
+## 1.10.1 (2019-12-03)
+feat: use six.text_type instead of six.string_types
+
 ## 1.10.0 (2019-08-13)
 feat: Add `--verbose` flag with some initial commentary
 bug: Update tests to use latest VAPID version
