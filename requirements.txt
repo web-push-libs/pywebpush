@@ -1,4 +1,4 @@
 cryptography>=2.6.1
 http-ece>=1.1.0
 requests>=2.21.0
-py-vapid>=1.5.0
+py-vapid>=1.7.0
