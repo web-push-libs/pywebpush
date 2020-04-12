@@ -1,5 +1,8 @@
 # I am terrible at keeping this up-to-date.
 
+## 1.10.2 (2020-04-11)
+bug: update min vapid requirement to 1.7.0
+
 ## 1.10.1 (2019-12-03)
 feat: use six.text_type instead of six.string_types
 
