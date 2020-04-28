@@ -154,7 +154,8 @@ class WebpushTestCase(unittest.TestCase):
             data=data,
             vapid_private_key=self.vapid_key,
             vapid_claims={"sub": "mailto:ops@example.com"},
-            content_encoding="aesgcm"
+            content_encoding="aesgcm",
+            headers={"Test-Header": "test-value"}
         )
         eq_(subscription_info.get('endpoint'), mock_post.call_args[0][0])
         pheaders = mock_post.call_args[1].get('headers')
@@ -173,6 +174,7 @@ class WebpushTestCase(unittest.TestCase):
         ckey = pheaders.get('crypto-key')
         ok_('dh=' in ckey)
         eq_(pheaders.get('content-encoding'), 'aesgcm')
+        eq_(pheaders.get('test-header'), 'test-value')
 
     @patch.object(WebPusher, "send")
     @patch.object(py_vapid.Vapid, "sign")
