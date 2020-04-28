@@ -9,7 +9,7 @@ def get_config():
     parser = argparse.ArgumentParser(description="WebPush tool")
     parser.add_argument("--data", '-d', help="Data file")
     parser.add_argument("--info", "-i", help="Subscription Info JSON file")
-    parser.add_argument("--head",  help="Header Info JSON file")
+    parser.add_argument("--head", help="Header Info JSON file")
     parser.add_argument("--claims", help="Vapid claim file")
     parser.add_argument("--key", help="Vapid private key file path")
     parser.add_argument("--curl", help="Don't send, display as curl command",
@@ -56,7 +56,8 @@ def main():
             vapid_claims=args.claims,
             curl=args.curl,
             content_encoding=args.encoding,
-            verbose=args.verbose)
+            verbose=args.verbose,
+            headers=args.head)
         print(result)
     except Exception as ex:
         print("ERROR: {}".format(ex))
