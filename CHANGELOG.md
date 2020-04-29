@@ -1,5 +1,8 @@
 # I am terrible at keeping this up-to-date.
 
+## 1.11.0 (2020-04-29)
+feat: add `--head` to read headers out of a json file (thanks @braedon)
+
 ## 1.10.2 (2020-04-11)
 bug: update min vapid requirement to 1.7.0
 
