@@ -382,7 +382,8 @@ def webpush(subscription_info,
             curl=False,
             timeout=None,
             ttl=0,
-            verbose=False):
+            verbose=False,
+            headers=None):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -427,8 +428,16 @@ def webpush(subscription_info,
     :param verbose: Provide verbose feedback
     :type verbose: bool
     :return requests.Response or string
+    :param headers: Dictionary of extra HTTP headers to include
+    :type headers: dict
 
     """
+    if headers is None:
+        headers = dict()
+    else:
+        # Ensure we don't leak VAPID headers by mutating the passed in dict.
+        headers = headers.copy()
+
     vapid_headers = None
     if vapid_claims:
         if verbose:
@@ -462,10 +471,11 @@ def webpush(subscription_info,
         vapid_headers = vv.sign(vapid_claims)
         if verbose:
             print("\t headers: {}".format(vapid_headers))
+        headers.update(vapid_headers)
 
     response = WebPusher(subscription_info, verbose=verbose).send(
         data,
-        vapid_headers,
+        headers,
         ttl=ttl,
         content_encoding=content_encoding,
         curl=curl,
