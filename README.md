@@ -8,7 +8,7 @@ Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?bran
 This is a work in progress.
 This library is available on [pypi as pywebpush](https://pypi.python.org/pypi/pywebpush).
 Source is available on
-[github](https://github.com/mozilla-services/pywebpush).
+[github](https://github.com/web-push-libs/pywebpush).
 
 ## Installation
 
