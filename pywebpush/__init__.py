@@ -201,10 +201,6 @@ class WebPusher:
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
-        crypto_key = server_key.public_key().public_bytes(
-            encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
-        )
 
         if isinstance(data, six.text_type):
             data = bytes(data.encode('utf8'))
@@ -222,7 +218,12 @@ class WebPusher:
             })
         else:
             self.verb("Encrypting to aesgcm...")
-            crypto_key = base64.urlsafe_b64encode(crypto_key).strip(b'=')
+            crypto_key = base64.urlsafe_b64encode(
+                server_key.public_key().public_bytes(
+                    encoding=serialization.Encoding.X962,
+                    format=serialization.PublicFormat.UncompressedPoint
+                )
+            ).strip(b'=')
             encrypted = http_ece.encrypt(
                 data,
                 salt=salt,
