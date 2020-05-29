@@ -183,21 +183,16 @@ class WebPusher:
         :type content_encoding: enum("aesgcm", "aes128gcm")
 
         """
-        # Salt is a random 16 byte array.
         if not data:
             self.verb("No data found...")
             return
         if not self.auth_key or not self.receiver_key:
             raise WebPushException("No keys specified in subscription info")
         self.verb("Encoding data...")
-        salt = None
         if content_encoding not in self.valid_encodings:
             raise WebPushException("Invalid content encoding specified. "
                                    "Select from " +
                                    json.dumps(self.valid_encodings))
-        if content_encoding == "aesgcm":
-            self.verb("Generating salt for aesgcm...")
-            salt = os.urandom(16)
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
@@ -208,7 +203,6 @@ class WebPusher:
             self.verb("Encrypting to aes128gcm...")
             encrypted = http_ece.encrypt(
                 data,
-                salt=salt,
                 private_key=server_key,
                 dh=self.receiver_key,
                 auth_secret=self.auth_key,
@@ -217,6 +211,9 @@ class WebPusher:
                 'body': encrypted
             })
         else:
+            # Salt is a random 16 byte array.
+            self.verb("Generating salt for aesgcm...")
+            salt = os.urandom(16)
             self.verb("Encrypting to aesgcm...")
             crypto_key = base64.urlsafe_b64encode(
                 server_key.public_key().public_bytes(
@@ -235,9 +232,8 @@ class WebPusher:
             reply = CaseInsensitiveDict({
                 'crypto_key': crypto_key,
                 'body': encrypted,
+                'salt': base64.urlsafe_b64encode(salt).strip(b'='),
             })
-            if salt:
-                reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
         return reply
 
     def as_curl(self, endpoint, encoded_data, headers):
