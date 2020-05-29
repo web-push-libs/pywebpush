@@ -147,20 +147,20 @@ class WebPusher:
             raise WebPushException("subscription_info missing endpoint URL")
         self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
-        if 'keys' in subscription_info:
-            keys = self.subscription_info['keys']
-            for k in ['p256dh', 'auth']:
-                if keys.get(k) is None:
-                    raise WebPushException("Missing keys value: {}".format(k))
-                if isinstance(keys[k], six.text_type):
-                    keys[k] = bytes(keys[k].encode('utf8'))
-            receiver_raw = base64.urlsafe_b64decode(
-                self._repad(keys['p256dh']))
-            if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
-                raise WebPushException("Invalid p256dh key specified")
-            self.receiver_key = receiver_raw
-            self.auth_key = base64.urlsafe_b64decode(
-                self._repad(keys['auth']))
+        if 'keys' not in subscription_info:
+            return
+        keys = self.subscription_info['keys']
+        for k in ['p256dh', 'auth']:
+            if keys.get(k) is None:
+                raise WebPushException("Missing keys value: {}".format(k))
+            if isinstance(keys[k], six.text_type):
+                keys[k] = bytes(keys[k].encode('utf8'))
+        receiver_raw = base64.urlsafe_b64decode(
+            self._repad(keys['p256dh']))
+        if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
+            raise WebPushException("Invalid p256dh key specified")
+        self.receiver_key = receiver_raw
+        self.auth_key = base64.urlsafe_b64decode(self._repad(keys['auth']))
 
     def verb(self, msg, *args, **kwargs):
         if self.verbose:
