@@ -1,7 +1,7 @@
 [![Build
-Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master)](https://travis-ci.org/web-push-libs/pywebpush)
+Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=main)](https://travis-ci.org/web-push-libs/pywebpush)
 [![Requirements
-Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master)
+Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=main)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=main)
 
 # Webpush Data encryption library for Python
 
@@ -194,5 +194,3 @@ If you're interested in just testing your applications WebPush interface, you co
 which will encrypt and send the contents of `stuff_to_send.data`.
 
 See `./bin/pywebpush --help` for available commands and options.
-
-

@@ -48,7 +48,7 @@ jobs:
       - run:
           name: Deploy to Dockerhub
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
               DOCKER_TAG="latest"
             fi
 
@@ -85,4 +85,3 @@ workflows:
           filters:
             tags:
               only: /.*/
-
