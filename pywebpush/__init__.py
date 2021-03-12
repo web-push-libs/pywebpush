@@ -474,7 +474,9 @@ def webpush(subscription_info,
             print("\t headers: {}".format(vapid_headers))
         headers.update(vapid_headers)
 
-    response = WebPusher(subscription_info, requests_session=requests_session, verbose=verbose).send(
+    response = WebPusher(
+        subscription_info, requests_session=requests_session, verbose=verbose
+    ).send(
         data,
         headers,
         ttl=ttl,
