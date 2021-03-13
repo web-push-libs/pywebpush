@@ -217,18 +217,15 @@ class WebpushTestCase(unittest.TestCase):
 
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
-        try:
-            webpush(
-                subscription_info=subscription_info,
-                data=data,
-                vapid_claims={
-                    "aud": "https://example.com",
-                    "sub": "mailto:ops@example.com"
-                })
-        except WebPushException:
-            pass
-        except Exception:
-            raise
+        self.assertRaises(
+            WebPushException,
+            webpush,
+            subscription_info=subscription_info,
+            data=data,
+            vapid_claims={
+                "aud": "https://example.com",
+                "sub": "mailto:ops@example.com"
+            })
 
     @patch("requests.post")
     def test_send_bad_vapid_bad_return(self, mock_post):
@@ -236,19 +233,16 @@ class WebpushTestCase(unittest.TestCase):
 
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
-        try:
-            webpush(
-                subscription_info=subscription_info,
-                data=data,
-                vapid_claims={
-                    "aud": "https://example.com",
-                    "sub": "mailto:ops@example.com"
-                },
-                vapid_private_key=self.vapid_key)
-        except WebPushException:
-            pass
-        except Exception:
-            raise
+        self.assertRaises(
+            WebPushException,
+            webpush,
+            subscription_info=subscription_info,
+            data=data,
+            vapid_claims={
+                "aud": "https://example.com",
+                "sub": "mailto:ops@example.com"
+            },
+            vapid_private_key=self.vapid_key)
 
     @patch("requests.post")
     def test_send_empty(self, mock_post):
@@ -278,14 +272,11 @@ class WebpushTestCase(unittest.TestCase):
                    "Authentication": "bearer vapid"}
         data = 'Something'
         pusher = WebPusher(subscription_info)
-        try:
-            pusher.encode(
-                data,
-                headers)
-        except WebPushException:
-            pass
-        except Exception:
-            raise
+        self.assertRaises(
+            WebPushException,
+            pusher.encode,
+            data,
+            headers)
 
     @patch("requests.post")
     def test_send_no_headers(self, mock_post):
