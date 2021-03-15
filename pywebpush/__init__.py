@@ -382,9 +382,9 @@ def webpush(subscription_info,
             curl=False,
             timeout=None,
             ttl=0,
-            requests_session=None,
             verbose=False,
-            headers=None):
+            headers=None,
+            requests_session=None):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
