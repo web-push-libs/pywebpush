@@ -383,7 +383,8 @@ def webpush(subscription_info,
             timeout=None,
             ttl=0,
             verbose=False,
-            headers=None):
+            headers=None,
+            requests_session=None):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -473,7 +474,9 @@ def webpush(subscription_info,
             print("\t headers: {}".format(vapid_headers))
         headers.update(vapid_headers)
 
-    response = WebPusher(subscription_info, verbose=verbose).send(
+    response = WebPusher(
+        subscription_info, requests_session=requests_session, verbose=verbose
+    ).send(
         data,
         headers,
         ttl=ttl,
