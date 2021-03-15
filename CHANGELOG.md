@@ -1,5 +1,8 @@
 # I am terrible at keeping this up-to-date.
 
+## 1.12.0 (2021-03-15)
+chore: library update, remove nose tests
+
 ## 1.11.0 (2020-04-29)
 feat: add `--head` to read headers out of a json file (thanks @braedon)
 
