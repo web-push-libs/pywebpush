@@ -10,12 +10,12 @@ available on `github <https://github.com/mozilla-services/pywebpush>`__.
 Installation
 ------------
 
-You'll need to run ``python virtualenv``. Then
+You’ll need to run ``python virtualenv``. Then
 
 ::
 
-    bin/pip install -r requirements.txt
-    bin/python setup.py develop
+   bin/pip install -r requirements.txt
+   bin/python setup.py develop
 
 Usage
 -----
@@ -31,26 +31,26 @@ As illustration, a ``subscription_info`` object may look like:
 
 .. code:: json
 
-    {"endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...", "keys": {"auth": "k8J...", "p256dh": "BOr..."}}
+   {"endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...", "keys": {"auth": "k8J...", "p256dh": "BOr..."}}
 
 How you send the PushSubscription data to your backend, store it
-referenced to the user who requested it, and recall it when there's a
+referenced to the user who requested it, and recall it when there’s a
 new push subscription update is left as an exercise for the reader.
 
 Sending Data using ``webpush()`` One Call
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In many cases, your code will be sending a single message to many
-recipients. There's a "One Call" function which will make things easier.
+recipients. There’s a “One Call” function which will make things easier.
 
 .. code:: python
 
-    from pywebpush import webpush
+   from pywebpush import webpush
 
-    webpush(subscription_info,
-            data,
-            vapid_private_key="Private Key or File Path[1]",
-            vapid_claims={"sub": "mailto:YourEmailAddress"})
+   webpush(subscription_info,
+           data,
+           vapid_private_key="Private Key or File Path[1]",
+           vapid_claims={"sub": "mailto:YourEmailAddress"})
 
 This will encode ``data``, add the appropriate VAPID auth headers if
 required and send it to the push server identified in the
@@ -58,67 +58,67 @@ required and send it to the push server identified in the
 
 **Parameters**
 
-*subscription\_info* - The ``dict`` of the subscription info (described
+*subscription_info* - The ``dict`` of the subscription info (described
 above).
 
 *data* - can be any serial content (string, bit array, serialized JSON,
 etc), but be sure that your receiving application is able to parse and
-understand it. (e.g. ``data = "Mary had a little lamb."``)
+understand it. (e.g. ``data = "Mary had a little lamb."``)
 
-*content\_type* - specifies the form of Encryption to use, either
+*content_type* - specifies the form of Encryption to use, either
 ``'aes128gcm'`` or the deprecated ``'aesgcm'``. NOTE that not all User
 Agents can decrypt ``'aesgcm'``, so the library defaults to the RFC 8188
 standard form.
 
-*vapid\_claims* - a ``dict`` containing the VAPID claims required for
+*vapid_claims* - a ``dict`` containing the VAPID claims required for
 authorization (See
-`py\_vapid <https://github.com/web-push-libs/vapid/tree/master/python>`__
+`py_vapid <https://github.com/web-push-libs/vapid/tree/master/python>`__
 for more details). If ``aud`` is not specified, pywebpush will attempt
 to auto-fill from the ``endpoint``.
 
-*vapid\_private\_key* - Either a path to a VAPID EC2 private key PEM
-file, or a string containing the DER representation. (See
-`py\_vapid <https://github.com/web-push-libs/vapid/tree/master/python>`__
+*vapid_private_key* - Either a path to a VAPID EC2 private key PEM file,
+or a string containing the DER representation. (See
+`py_vapid <https://github.com/web-push-libs/vapid/tree/master/python>`__
 for more details.) The ``private_key`` may be a base64 encoded DER
 formatted private key, or the path to an OpenSSL exported private key
 file.
 
-e.g. the output of:
+e.g. the output of:
 
 ::
 
-    openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
+   openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 
 **Example**
 
 .. code:: python
 
-    from pywebpush import webpush, WebPushException
+   from pywebpush import webpush, WebPushException
 
-    try:
-        webpush(
-            subscription_info={
-                "endpoint": "https://push.example.com/v1/12345",
-                "keys": {
-                    "p256dh": "0123abcde...",
-                    "auth": "abc123..."
-                }},
-            data="Mary had a little lamb, with a nice mint jelly",
-            vapid_private_key="path/to/vapid_private.pem",
-            vapid_claims={
-                    "sub": "mailto:YourNameHere@example.org",
-                }
-        )
-    except WebPushException as ex:
-        print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
-        # Mozilla returns additional information in the body of the response.
-        if ex.response and ex.response.json():
-            extra = ex.response.json()
-            print("Remote service replied with a {}:{}, {}",
-                  extra.code,
-                  extra.errno,
-                  extra.message
-                  )
+   try:
+       webpush(
+           subscription_info={
+               "endpoint": "https://push.example.com/v1/12345",
+               "keys": {
+                   "p256dh": "0123abcde...",
+                   "auth": "abc123..."
+               }},
+           data="Mary had a little lamb, with a nice mint jelly",
+           vapid_private_key="path/to/vapid_private.pem",
+           vapid_claims={
+                   "sub": "mailto:YourNameHere@example.org",
+               }
+       )
+   except WebPushException as ex:
+       print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
+       # Mozilla returns additional information in the body of the response.
+       if ex.response and ex.response.json():
+           extra = ex.response.json()
+           print("Remote service replied with a {}:{}, {}",
+                 extra.code,
+                 extra.errno,
+                 extra.message
+                 )
 
 Methods
 ~~~~~~~
@@ -145,13 +145,13 @@ Send the data using additional parameters. On error, returns a
 *ttl* Message Time To Live on Push Server waiting for the client to
 reconnect (in seconds)
 
-*gcm\_key* Google Cloud Messaging key (if using the older GCM push
+*gcm_key* Google Cloud Messaging key (if using the older GCM push
 system) This is the API key obtained from the Google Developer Console.
 
-*reg\_id* Google Cloud Messaging registration ID (will be extracted from
+*reg_id* Google Cloud Messaging registration ID (will be extracted from
 endpoint if not specified)
 
-*content\_encoding* ECE content encoding type (defaults to "aes128gcm")
+*content_encoding* ECE content encoding type (defaults to “aes128gcm”)
 
 *curl* Do not execute the POST, but return as a ``curl`` command. This
 will write the encrypted content to a local file named
@@ -167,7 +167,7 @@ to send from Chrome using the old GCM mode:
 
 .. code:: python
 
-    WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
+   WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
 
 ``.encode(data, content_encoding="aes128gcm")``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -179,19 +179,19 @@ Encode the ``data`` for future use. On error, returns a
 
 *data* Binary string of data to send
 
-*content\_encoding* ECE content encoding type (defaults to "aes128gcm")
+*content_encoding* ECE content encoding type (defaults to “aes128gcm”)
 
 **Example**
 
 .. code:: python
 
-    encoded_data = WebPush(subscription_info).encode(data)
+   encoded_data = WebPush(subscription_info).encode(data)
 
 Stand Alone Webpush
 -------------------
 
-If you're not really into coding your own solution, there's also a
-"stand-alone" ``pywebpush`` command in the ./bin directory.
+If you’re not really into coding your own solution, there’s also a
+“stand-alone” ``pywebpush`` command in the ./bin directory.
 
 This uses two files: \* the *data* file, which contains the message to
 send, in whatever form you like. \* the *subscription info* file, which
@@ -201,24 +201,24 @@ like:
 
 .. code:: json
 
-    {"endpoint": "https://push...",
-     "keys": {
-         "auth": "ab01...",
-         "p256dh": "aa02..."
-     }}
+   {"endpoint": "https://push...",
+    "keys": {
+        "auth": "ab01...",
+        "p256dh": "aa02..."
+    }}
 
-If you're interested in just testing your applications WebPush
+If you’re interested in just testing your applications WebPush
 interface, you could use the Command Line:
 
 .. code:: bash
 
-    ./bin/pywebpush --data stuff_to_send.data --info subscription.info
+   ./bin/pywebpush --data stuff_to_send.data --info subscription.info
 
 which will encrypt and send the contents of ``stuff_to_send.data``.
 
 See ``./bin/pywebpush --help`` for available commands and options.
 
-.. |Build Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=master
+.. |Build Status| image:: https://travis-ci.org/web-push-libs/pywebpush.svg?branch=main
    :target: https://travis-ci.org/web-push-libs/pywebpush
-.. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=master
-   :target: https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=master
+.. |Requirements Status| image:: https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=main
+   :target: https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=main
