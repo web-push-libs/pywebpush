@@ -32,7 +32,10 @@ and push data.
 As illustration, a `subscription_info` object may look like:
 
 ```json
-{"endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...", "keys": {"auth": "k8J...", "p256dh": "BOr..."}}
+{
+  "endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...",
+  "keys": { "auth": "k8J...", "p256dh": "BOr..." }
+}
 ```
 
 How you send the PushSubscription data to your backend, store it
@@ -60,19 +63,19 @@ in the `subscription_info` block.
 
 **Parameters**
 
-*subscription_info* - The `dict` of the subscription info (described above).
+_subscription_info_ - The `dict` of the subscription info (described above).
 
-*data* - can be any serial content (string, bit array, serialized JSON, etc), but be sure that your receiving
+_data_ - can be any serial content (string, bit array, serialized JSON, etc), but be sure that your receiving
 application is able to parse and understand it. (e.g. `data = "Mary had a little lamb."`)
 
-*content_type* - specifies the form of Encryption to use, either `'aes128gcm'` or the deprecated `'aesgcm'`. NOTE that
+_content_type_ - specifies the form of Encryption to use, either `'aes128gcm'` or the deprecated `'aesgcm'`. NOTE that
 not all User Agents can decrypt `'aesgcm'`, so the library defaults to the RFC 8188 standard form.
 
-*vapid_claims* - a `dict` containing the VAPID claims required for authorization (See
+_vapid_claims_ - a `dict` containing the VAPID claims required for authorization (See
 [py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details). If `aud` is not specified,
 pywebpush will attempt to auto-fill from the `endpoint`.
 
-*vapid_private_key* - Either a path to a VAPID EC2 private key PEM file, or a string containing the DER representation.
+_vapid_private_key_ - Either a path to a VAPID EC2 private key PEM file, or a string containing the DER representation.
 (See [py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details.) The `private_key` may be
 a base64 encoded DER formatted private key, or the path to an OpenSSL exported private key file.
 
@@ -126,23 +129,23 @@ Send the data using additional parameters. On error, returns a `WebPushException
 
 **Parameters**
 
-*data* Binary string of data to send
+_data_ Binary string of data to send
 
-*headers* A `dict` containing any additional headers to send
+_headers_ A `dict` containing any additional headers to send
 
-*ttl* Message Time To Live on Push Server waiting for the client to reconnect (in seconds)
+_ttl_ Message Time To Live on Push Server waiting for the client to reconnect (in seconds)
 
-*gcm_key* Google Cloud Messaging key (if using the older GCM push system) This is the API key obtained from the Google
+_gcm_key_ Google Cloud Messaging key (if using the older GCM push system) This is the API key obtained from the Google
 Developer Console.
 
-*reg_id* Google Cloud Messaging registration ID (will be extracted from endpoint if not specified)
+_reg_id_ Google Cloud Messaging registration ID (will be extracted from endpoint if not specified)
 
-*content_encoding* ECE content encoding type (defaults to "aes128gcm")
+_content_encoding_ ECE content encoding type (defaults to "aes128gcm")
 
-*curl* Do not execute the POST, but return as a `curl` command. This will write the encrypted content to a local file
+_curl_ Do not execute the POST, but return as a `curl` command. This will write the encrypted content to a local file
 named `encrpypted.data`. This command is meant to be used for debugging purposes.
 
-*timeout* timeout for requests POST query.
+_timeout_ timeout for requests POST query.
 See [requests documentation](http://docs.python-requests.org/en/master/user/quickstart/#timeouts).
 
 **Example**
@@ -159,9 +162,9 @@ Encode the `data` for future use. On error, returns a `WebPushException`
 
 **Parameters**
 
-*data* Binary string of data to send
+_data_ Binary string of data to send
 
-*content_encoding* ECE content encoding type (defaults to "aes128gcm")
+_content_encoding_ ECE content encoding type (defaults to "aes128gcm")
 
 **Example**
 
@@ -175,15 +178,18 @@ If you're not really into coding your own solution, there's also a "stand-alone"
 ./bin directory.
 
 This uses two files:
-* the *data* file, which contains the message to send, in whatever form you like.
-* the *subscription info* file, which contains the subscription information as JSON encoded data. This is usually returned by the Push `subscribe` method and looks something like:
+
+- the _data_ file, which contains the message to send, in whatever form you like.
+- the _subscription info_ file, which contains the subscription information as JSON encoded data. This is usually returned by the Push `subscribe` method and looks something like:
 
 ```json
-{"endpoint": "https://push...",
- "keys": {
-     "auth": "ab01...",
-     "p256dh": "aa02..."
- }}
+{
+  "endpoint": "https://push...",
+  "keys": {
+    "auth": "ab01...",
+    "p256dh": "aa02..."
+  }
+}
 ```
 
 If you're interested in just testing your applications WebPush interface, you could use the Command Line:
@@ -191,6 +197,7 @@ If you're interested in just testing your applications WebPush interface, you co
 ```bash
 ./bin/pywebpush --data stuff_to_send.data --info subscription.info
 ```
+
 which will encrypt and send the contents of `stuff_to_send.data`.
 
 See `./bin/pywebpush --help` for available commands and options.

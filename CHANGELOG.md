@@ -1,5 +1,8 @@
 # I am terrible at keeping this up-to-date.
 
+## 1.14.0 (2021-07-28)
+bug: accept all VAPID key instances (thanks @mthu)
+
 ## 1.13.0 (2021-03-15)
 Support requests_session param in webpush fn too
 
