@@ -441,13 +441,14 @@ def webpush(subscription_info,
 
     vapid_headers = None
     if vapid_claims:
+        # Remember, passed structures are mutable in python.
+        vapid_claims = deepcopy(vapid_claims)
         if verbose:
             print("Generating VAPID headers...")
         if not vapid_claims.get('aud'):
             url = urlparse(subscription_info.get('endpoint'))
             aud = "{}://{}".format(url.scheme, url.netloc)
             vapid_claims['aud'] = aud
-        # Remember, passed structures are mutable in python.
         # It's possible that a previously set `exp` field is no longer valid.
         if (not vapid_claims.get('exp')
                 or vapid_claims.get('exp') < int(time.time())):
