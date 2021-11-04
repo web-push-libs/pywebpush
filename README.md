@@ -73,7 +73,8 @@ not all User Agents can decrypt `'aesgcm'`, so the library defaults to the RFC 8
 
 _vapid_claims_ - a `dict` containing the VAPID claims required for authorization (See
 [py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details). If `aud` is not specified,
-pywebpush will attempt to auto-fill from the `endpoint`.
+pywebpush will attempt to auto-fill from the `endpoint`. If `exp` is not specified or set in the past, it will be set
+to 12 hours from now. In both cases, the passed `dict` **will be mutated** after the call.
 
 _vapid_private_key_ - Either a path to a VAPID EC2 private key PEM file, or a string containing the DER representation.
 (See [py_vapid](https://github.com/web-push-libs/vapid/tree/master/python) for more details.) The `private_key` may be
