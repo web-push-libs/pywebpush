@@ -1,7 +1,7 @@
 # I am terrible at keeping this up-to-date.
 
 ## 1.13.0 (2021-03-15)
-Support requests_session param in webpush fn too
+Support requests_session param in webpush fn too (thanks @bwindels)
 
 ## 1.12.0 (2021-03-15)
 chore: library update, remove nose tests

@@ -1,21 +1,25 @@
-|Build Status| |Requirements Status|
-
 Webpush Data encryption library for Python
 ==========================================
 
-This is a work in progress. This library is available on `pypi as
+|Build Status| |Requirements Status|
+
+This library is available on `pypi as
 pywebpush <https://pypi.python.org/pypi/pywebpush>`__. Source is
 available on `github <https://github.com/mozilla-services/pywebpush>`__.
+Please note: This library was designated as a ``Critical Project`` by
+PyPi, it is currently maintained by `a single
+person <https://xkcd.com/2347/>`__. I still accept PRs and Issues, but
+make of that what you will.
 
 Installation
 ------------
 
-You’ll need to run ``python virtualenv``. Then
+You’ll need to run ``python -m venv venv``. Then
 
-::
+.. code:: bash
 
-   bin/pip install -r requirements.txt
-   bin/python setup.py develop
+   venv/bin/pip install -r requirements.txt
+   venv/bin/python setup.py develop
 
 Usage
 -----
@@ -85,7 +89,7 @@ file.
 
 e.g. the output of:
 
-::
+.. code:: bash
 
    openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 
@@ -193,11 +197,13 @@ Stand Alone Webpush
 If you’re not really into coding your own solution, there’s also a
 “stand-alone” ``pywebpush`` command in the ./bin directory.
 
-This uses two files: \* the *data* file, which contains the message to
-send, in whatever form you like. \* the *subscription info* file, which
-contains the subscription information as JSON encoded data. This is
-usually returned by the Push ``subscribe`` method and looks something
-like:
+This uses two files:
+
+-  the *data* file, which contains the message to send, in whatever form
+   you like.
+-  the *subscription info* file, which contains the subscription
+   information as JSON encoded data. This is usually returned by the
+   Push ``subscribe`` method and looks something like:
 
 .. code:: json
 

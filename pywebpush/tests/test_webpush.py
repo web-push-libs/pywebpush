@@ -80,7 +80,8 @@ class WebpushTestCase(unittest.TestCase):
         push = WebPusher(subscription_info)
         assert push.subscription_info != subscription_info
         assert push.subscription_info['keys'] != subscription_info['keys']
-        assert push.subscription_info['endpoint'] == subscription_info['endpoint']
+        assert push.subscription_info['endpoint'] == \
+            subscription_info['endpoint']
         assert push.receiver_key == rk_decode
         assert push.auth_key == b'\x93\xc2U\xea\xc8\xddn\x10"\xd6}\xff,0K\xbc'
 

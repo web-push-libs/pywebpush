@@ -1,23 +1,22 @@
-[![Build
-Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=main)](https://travis-ci.org/web-push-libs/pywebpush)
-[![Requirements
-Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=main)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=main)
-
 # Webpush Data encryption library for Python
 
-This is a work in progress.
+[![Build Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=main)](https://travis-ci.org/web-push-libs/pywebpush)
+[![Requirements Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=main)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=main)
+
 This library is available on [pypi as pywebpush](https://pypi.python.org/pypi/pywebpush).
-Source is available on
-[github](https://github.com/mozilla-services/pywebpush).
+Source is available on [github](https://github.com/mozilla-services/pywebpush).
+Please note: This library was designated as a `Critical Project` by PyPi, it is currently
+maintained by [a single person](https://xkcd.com/2347/). I still accept PRs and Issues, but
+make of that what you will.
 
 ## Installation
 
-You'll need to run `python virtualenv`.
+You'll need to run `python -m venv venv`.
 Then
 
-```
-bin/pip install -r requirements.txt
-bin/python setup.py develop
+```bash
+venv/bin/pip install -r requirements.txt
+venv/bin/python setup.py develop
 ```
 
 ## Usage
@@ -78,7 +77,7 @@ a base64 encoded DER formatted private key, or the path to an OpenSSL exported p
 
 e.g. the output of:
 
-```
+```bash
 openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 ```
 
@@ -175,6 +174,7 @@ If you're not really into coding your own solution, there's also a "stand-alone"
 ./bin directory.
 
 This uses two files:
+
 * the *data* file, which contains the message to send, in whatever form you like.
 * the *subscription info* file, which contains the subscription information as JSON encoded data. This is usually returned by the Push `subscribe` method and looks something like:
 
@@ -191,6 +191,7 @@ If you're interested in just testing your applications WebPush interface, you co
 ```bash
 ./bin/pywebpush --data stuff_to_send.data --info subscription.info
 ```
+
 which will encrypt and send the contents of `stuff_to_send.data`.
 
 See `./bin/pywebpush --help` for available commands and options.
