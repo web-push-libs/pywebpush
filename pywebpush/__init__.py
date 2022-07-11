@@ -20,7 +20,7 @@ import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
-from py_vapid import Vapid
+from py_vapid import Vapid, Vapid01
 
 
 class WebPushException(Exception):
@@ -460,7 +460,7 @@ def webpush(subscription_info,
                     vapid_claims['exp']))
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
-        if isinstance(vapid_private_key, Vapid):
+        if isinstance(vapid_private_key, Vapid01):
             if verbose:
                 logging.info("Looks like we already have a valid VAPID key")
             vv = vapid_private_key
