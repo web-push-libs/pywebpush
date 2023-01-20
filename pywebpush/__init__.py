@@ -13,6 +13,7 @@ try:
 except ImportError:  # pragma nocover
     from urlparse import urlparse
 
+import aiohttp
 import six
 import http_ece
 import requests
