@@ -110,16 +110,16 @@ class WebPusher:
         WebPusher(subscription_info).send(data, headers)
 
     """
+
     subscription_info = {}
     valid_encodings = [
         # "aesgcm128",  # this is draft-0, but DO NOT USE.
         "aesgcm",  # draft-httpbis-encryption-encoding-01
-        "aes128gcm"  # RFC8188 Standard encoding
+        "aes128gcm",  # RFC8188 Standard encoding
     ]
     verbose = False
 
-    def __init__(self, subscription_info, requests_session=None,
-                 verbose=False):
+    def __init__(self, subscription_info, requests_session=None, verbose=False):
         """Initialize using the info provided by the client PushSubscription
         object (See
         https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe)
@@ -143,24 +143,22 @@ class WebPusher:
         else:
             self.requests_method = requests_session
 
-        if 'endpoint' not in subscription_info:
+        if "endpoint" not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
         self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
-        if 'keys' in subscription_info:
-            keys = self.subscription_info['keys']
-            for k in ['p256dh', 'auth']:
+        if "keys" in subscription_info:
+            keys = self.subscription_info["keys"]
+            for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
                     raise WebPushException("Missing keys value: {}".format(k))
                 if isinstance(keys[k], six.text_type):
-                    keys[k] = bytes(keys[k].encode('utf8'))
-            receiver_raw = base64.urlsafe_b64decode(
-                self._repad(keys['p256dh']))
+                    keys[k] = bytes(keys[k].encode("utf8"))
+            receiver_raw = base64.urlsafe_b64decode(self._repad(keys["p256dh"]))
             if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
                 raise WebPushException("Invalid p256dh key specified")
             self.receiver_key = receiver_raw
-            self.auth_key = base64.urlsafe_b64decode(
-                self._repad(keys['auth']))
+            self.auth_key = base64.urlsafe_b64decode(self._repad(keys["auth"]))
 
     def verb(self, msg, *args, **kwargs):
         if self.verbose:
@@ -168,7 +166,7 @@ class WebPusher:
 
     def _repad(self, data):
         """Add base64 padding to the end of a string, if required"""
-        return data + b"===="[:len(data) % 4]
+        return data + b"===="[: len(data) % 4]
 
     def encode(self, data, content_encoding="aes128gcm"):
         """Encrypt the data.
@@ -192,9 +190,10 @@ class WebPusher:
         self.verb("Encoding data...")
         salt = None
         if content_encoding not in self.valid_encodings:
-            raise WebPushException("Invalid content encoding specified. "
-                                   "Select from " +
-                                   json.dumps(self.valid_encodings))
+            raise WebPushException(
+                "Invalid content encoding specified. "
+                "Select from " + json.dumps(self.valid_encodings)
+            )
         if content_encoding == "aesgcm":
             self.verb("Generating salt for aesgcm...")
             salt = os.urandom(16)
@@ -203,11 +202,11 @@ class WebPusher:
         server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
         crypto_key = server_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
+            format=serialization.PublicFormat.UncompressedPoint,
         )
 
         if isinstance(data, six.text_type):
-            data = bytes(data.encode('utf8'))
+            data = bytes(data.encode("utf8"))
         if content_encoding == "aes128gcm":
             self.verb("Encrypting to aes128gcm...")
             encrypted = http_ece.encrypt(
@@ -216,13 +215,12 @@ class WebPusher:
                 private_key=server_key,
                 dh=self.receiver_key,
                 auth_secret=self.auth_key,
-                version=content_encoding)
-            reply = CaseInsensitiveDict({
-                'body': encrypted
-            })
+                version=content_encoding,
+            )
+            reply = CaseInsensitiveDict({"body": encrypted})
         else:
             self.verb("Encrypting to aesgcm...")
-            crypto_key = base64.urlsafe_b64encode(crypto_key).strip(b'=')
+            crypto_key = base64.urlsafe_b64encode(crypto_key).strip(b"=")
             encrypted = http_ece.encrypt(
                 data,
                 salt=salt,
@@ -230,13 +228,16 @@ class WebPusher:
                 keyid=crypto_key.decode(),
                 dh=self.receiver_key,
                 auth_secret=self.auth_key,
-                version=content_encoding)
-            reply = CaseInsensitiveDict({
-                'crypto_key': crypto_key,
-                'body': encrypted,
-            })
+                version=content_encoding,
+            )
+            reply = CaseInsensitiveDict(
+                {
+                    "crypto_key": crypto_key,
+                    "body": encrypted,
+                }
+            )
             if salt:
-                reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
+                reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
     def as_curl(self, endpoint, encoded_data, headers):
@@ -255,23 +256,33 @@ class WebPusher:
 
         """
         header_list = [
-            '-H "{}: {}" \\ \n'.format(
-                key.lower(), val) for key, val in headers.items()
+            '-H "{}: {}" \\ \n'.format(key.lower(), val) for key, val in headers.items()
         ]
         data = ""
         if encoded_data:
             with open("encrypted.data", "wb") as f:
                 f.write(encoded_data)
             data = "--data-binary @encrypted.data"
-        if 'content-length' not in headers:
+        if "content-length" not in headers:
             self.verb("Generating content-length header...")
             header_list.append(
-                '-H "content-length: {}" \\ \n'.format(len(encoded_data)))
-        return ("""curl -vX POST {url} \\\n{headers}{data}""".format(
-            url=endpoint, headers="".join(header_list), data=data))
+                '-H "content-length: {}" \\ \n'.format(len(encoded_data))
+            )
+        return """curl -vX POST {url} \\\n{headers}{data}""".format(
+            url=endpoint, headers="".join(header_list), data=data
+        )
 
-    def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
-             content_encoding="aes128gcm", curl=False, timeout=None):
+    def send(
+        self,
+        data=None,
+        headers=None,
+        ttl=0,
+        gcm_key=None,
+        reg_id=None,
+        content_encoding="aes128gcm",
+        curl=False,
+        timeout=None,
+    ):
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -311,80 +322,86 @@ class WebPusher:
                     # should use ';' instead of ',' to append the headers.
                     # see
                     # https://github.com/webpush-wg/webpush-encryption/issues/6
-                    crypto_key += ';'
-                crypto_key += (
-                    "dh=" + encoded["crypto_key"].decode('utf8'))
-                headers.update({
-                    'crypto-key': crypto_key
-                })
+                    crypto_key += ";"
+                crypto_key += "dh=" + encoded["crypto_key"].decode("utf8")
+                headers.update({"crypto-key": crypto_key})
             if "salt" in encoded:
-                headers.update({
-                    'encryption': "salt=" + encoded['salt'].decode('utf8')
-                })
-            headers.update({
-                'content-encoding': content_encoding,
-            })
+                headers.update({"encryption": "salt=" + encoded["salt"].decode("utf8")})
+            headers.update(
+                {
+                    "content-encoding": content_encoding,
+                }
+            )
         if gcm_key:
             # guess if it is a legacy GCM project key or actual FCM key
             # gcm keys are all about 40 chars (use 100 for confidence),
             # fcm keys are 153-175 chars
             if len(gcm_key) < 100:
                 self.verb("Guessing this is legacy GCM...")
-                endpoint = 'https://android.googleapis.com/gcm/send'
+                endpoint = "https://android.googleapis.com/gcm/send"
             else:
                 self.verb("Guessing this is FCM...")
-                endpoint = 'https://fcm.googleapis.com/fcm/send'
+                endpoint = "https://fcm.googleapis.com/fcm/send"
             reg_ids = []
             if not reg_id:
-                reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
+                reg_id = self.subscription_info["endpoint"].rsplit("/", 1)[-1]
                 self.verb("Fetching out registration id: {}", reg_id)
             reg_ids.append(reg_id)
             gcm_data = dict()
-            gcm_data['registration_ids'] = reg_ids
+            gcm_data["registration_ids"] = reg_ids
             if data:
-                gcm_data['raw_data'] = base64.b64encode(
-                    encoded.get('body')).decode('utf8')
-            gcm_data['time_to_live'] = int(
-                headers['ttl'] if 'ttl' in headers else ttl)
+                gcm_data["raw_data"] = base64.b64encode(encoded.get("body")).decode(
+                    "utf8"
+                )
+            gcm_data["time_to_live"] = int(headers["ttl"] if "ttl" in headers else ttl)
             encoded_data = json.dumps(gcm_data)
-            headers.update({
-                'Authorization': 'key='+gcm_key,
-                'Content-Type': 'application/json',
-            })
+            headers.update(
+                {
+                    "Authorization": "key=" + gcm_key,
+                    "Content-Type": "application/json",
+                }
+            )
         else:
-            encoded_data = encoded.get('body')
-            endpoint = self.subscription_info['endpoint']
+            encoded_data = encoded.get("body")
+            endpoint = self.subscription_info["endpoint"]
 
-        if 'ttl' not in headers or ttl:
+        if "ttl" not in headers or ttl:
             self.verb("Generating TTL of 0...")
-            headers['ttl'] = str(ttl or 0)
+            headers["ttl"] = str(ttl or 0)
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
         if curl:
             return self.as_curl(endpoint, encoded_data, headers)
-        self.verb("\nSending request to"
-                  "\n\thost: {}\n\theaders: {}\n\tdata: {}",
-                  endpoint, headers, encoded_data)
-        resp = self.requests_method.post(endpoint,
-                                         data=encoded_data,
-                                         headers=headers,
-                                         timeout=timeout)
-        self.verb("\nResponse:\n\tcode: {}\n\tbody: {}\n",
-                  resp.status_code, resp.text or "Empty")
+        self.verb(
+            "\nSending request to" "\n\thost: {}\n\theaders: {}\n\tdata: {}",
+            endpoint,
+            headers,
+            encoded_data,
+        )
+        resp = self.requests_method.post(
+            endpoint, data=encoded_data, headers=headers, timeout=timeout
+        )
+        self.verb(
+            "\nResponse:\n\tcode: {}\n\tbody: {}\n",
+            resp.status_code,
+            resp.text or "Empty",
+        )
         return resp
 
 
-def webpush(subscription_info,
-            data=None,
-            vapid_private_key=None,
-            vapid_claims=None,
-            content_encoding="aes128gcm",
-            curl=False,
-            timeout=None,
-            ttl=0,
-            verbose=False,
-            headers=None,
-            requests_session=None):
+def webpush(
+    subscription_info,
+    data=None,
+    vapid_private_key=None,
+    vapid_claims=None,
+    content_encoding="aes128gcm",
+    curl=False,
+    timeout=None,
+    ttl=0,
+    verbose=False,
+    headers=None,
+    requests_session=None,
+):
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -443,19 +460,17 @@ def webpush(subscription_info,
     if vapid_claims:
         if verbose:
             print("Generating VAPID headers...")
-        if not vapid_claims.get('aud'):
-            url = urlparse(subscription_info.get('endpoint'))
+        if not vapid_claims.get("aud"):
+            url = urlparse(subscription_info.get("endpoint"))
             aud = "{}://{}".format(url.scheme, url.netloc)
-            vapid_claims['aud'] = aud
+            vapid_claims["aud"] = aud
         # Remember, passed structures are mutable in python.
         # It's possible that a previously set `exp` field is no longer valid.
-        if (not vapid_claims.get('exp')
-                or vapid_claims.get('exp') < int(time.time())):
+        if not vapid_claims.get("exp") or vapid_claims.get("exp") < int(time.time()):
             # encryption lives for 12 hours
-            vapid_claims['exp'] = int(time.time()) + (12 * 60 * 60)
+            vapid_claims["exp"] = int(time.time()) + (12 * 60 * 60)
             if verbose:
-                print("Setting VAPID expry to {}...".format(
-                    vapid_claims['exp']))
+                print("Setting VAPID expry to {}...".format(vapid_claims["exp"]))
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if isinstance(vapid_private_key, Vapid01):
@@ -463,8 +478,7 @@ def webpush(subscription_info,
         elif os.path.isfile(vapid_private_key):
             # Presume that key from file is handled correctly by
             # py_vapid.
-            vv = Vapid.from_file(
-                private_key_file=vapid_private_key)  # pragma no cover
+            vv = Vapid.from_file(private_key_file=vapid_private_key)  # pragma no cover
         else:
             vv = Vapid.from_string(private_key=vapid_private_key)
         if verbose:
@@ -485,7 +499,10 @@ def webpush(subscription_info,
         timeout=timeout,
     )
     if not curl and response.status_code > 202:
-        raise WebPushException("Push failed: {} {}\nResponse body:{}".format(
-            response.status_code, response.reason, response.text),
-            response=response)
+        raise WebPushException(
+            "Push failed: {} {}\nResponse body:{}".format(
+                response.status_code, response.reason, response.text
+            ),
+            response=response,
+        )
     return response
