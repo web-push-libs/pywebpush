@@ -7,6 +7,7 @@ from copy import deepcopy
 import json
 import os
 import time
+from typing import Union
 
 try:
     from urllib.parse import urlparse
@@ -393,7 +394,7 @@ class WebPusher:
 
         return {"endpoint": endpoint, "data": encoded_data, "headers": headers}
 
-    def send(self, *args, **kwargs) -> Response:
+    def send(self, *args, **kwargs) -> Union[Response, str]:
         """Encode and send the data to the Push Service"""
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
@@ -418,9 +419,18 @@ class WebPusher:
         )
         return resp
 
-    async def send_async(self, *args, **kwargs) -> AioHttpResponse:
+    async def send_async(self, *args, **kwargs) -> Union[AioHttpResponse, str]:
         timeout = kwargs.pop("timeout", 10000)
-        endpoint, params = self._prepare_send_data(*args, **kwargs)
+        curl = kwargs.pop("curl", False)
+
+        params = self._prepare_send_data(*args, **kwargs)
+        endpoint = params.pop("endpoint")
+
+        if curl:
+            encoded_data = params["data"]
+            headers = params["headers"]
+            return self.as_curl(endpoint, encoded_data=encoded_data, headers=headers)
+
         resp = await self.aiohttp_method(endpoint, timeout=timeout, **params)
         resp_text = await resp.text()
         self.verb(
