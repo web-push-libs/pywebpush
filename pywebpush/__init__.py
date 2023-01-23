@@ -14,13 +14,18 @@ except ImportError:  # pragma nocover
     from urlparse import urlparse
 
 import aiohttp
+
 import six
 import http_ece
 import requests
+
+from aiohttp import ClientResponse as AioHttpResponse
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
+from functools import partial
 from py_vapid import Vapid, Vapid01
+from requests import Response
 
 
 class WebPushException(Exception):
@@ -120,7 +125,13 @@ class WebPusher:
     ]
     verbose = False
 
-    def __init__(self, subscription_info, requests_session=None, verbose=False):
+    def __init__(
+        self,
+        subscription_info,
+        requests_session=None,
+        aiohttp_session=None,
+        verbose=False,
+    ):
         """Initialize using the info provided by the client PushSubscription
         object (See
         https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe)
@@ -143,6 +154,11 @@ class WebPusher:
             self.requests_method = requests
         else:
             self.requests_method = requests_session
+
+        if aiohttp_session is None:
+            self.aiohttp_method = partial(aiohttp.request, method="POST")
+        else:
+            self.aiohttp_method = aiohttp_session.post
 
         if "endpoint" not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
@@ -273,7 +289,7 @@ class WebPusher:
             url=endpoint, headers="".join(header_list), data=data
         )
 
-    def send(
+    def _prepare_send_data(
         self,
         data=None,
         headers=None,
@@ -282,8 +298,7 @@ class WebPusher:
         reg_id=None,
         content_encoding="aes128gcm",
         curl=False,
-        timeout=None,
-    ):
+    ) -> dict:
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -304,9 +319,6 @@ class WebPusher:
         :type content_encoding: str
         :param curl: Display output as `curl` command instead of sending
         :type curl: bool
-        :param timeout: POST requests timeout
-        :type timeout: float or tuple
-
         """
         # Encode the data.
         if headers is None:
@@ -371,21 +383,50 @@ class WebPusher:
             headers["ttl"] = str(ttl or 0)
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
-        if curl:
-            return self.as_curl(endpoint, encoded_data, headers)
+
         self.verb(
             "\nSending request to" "\n\thost: {}\n\theaders: {}\n\tdata: {}",
             endpoint,
             headers,
             encoded_data,
         )
+
+        return {"endpoint": endpoint, "data": encoded_data, "headers": headers}
+
+    def send(self, *args, **kwargs) -> Response:
+        """Encode and send the data to the Push Service"""
+        timeout = kwargs.pop("timeout", 10000)
+        curl = kwargs.pop("curl", False)
+
+        params = self._prepare_send_data(*args, **kwargs)
+        endpoint = params.pop("endpoint")
+
+        if curl:
+            encoded_data = params["data"]
+            headers = params["headers"]
+            return self.as_curl(endpoint, encoded_data=encoded_data, headers=headers)
+
         resp = self.requests_method.post(
-            endpoint, data=encoded_data, headers=headers, timeout=timeout
+            endpoint,
+            timeout=timeout,
+            **params,
         )
         self.verb(
             "\nResponse:\n\tcode: {}\n\tbody: {}\n",
             resp.status_code,
             resp.text or "Empty",
+        )
+        return resp
+
+    async def send_async(self, *args, **kwargs) -> AioHttpResponse:
+        timeout = kwargs.pop("timeout", 10000)
+        endpoint, params = self._prepare_send_data(*args, **kwargs)
+        resp = await self.aiohttp_method(endpoint, timeout=timeout, **params)
+        resp_text = await resp.text()
+        self.verb(
+            "\nResponse:\n\tcode: {}\n\tbody: {}\n",
+            resp.status,
+            resp_text or "Empty",
         )
         return resp
 
