@@ -4,7 +4,7 @@ import os
 import unittest
 import time
 
-from mock import patch, Mock
+from mock import patch, Mock, AsyncMock
 import http_ece
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
@@ -14,8 +14,7 @@ import py_vapid
 from pywebpush import WebPusher, WebPushException, CaseInsensitiveDict, webpush
 
 
-class WebpushTestCase(unittest.TestCase):
-
+class WebpushTestUtils:
     # This is a exported DER formatted string of an ECDH public key
     # This was lifted from the py_vapid tests.
     vapid_key = (
@@ -43,6 +42,8 @@ class WebpushTestCase(unittest.TestCase):
             )
         ).strip(b"=")
 
+
+class WebpushTestCase(WebpushTestUtils, unittest.TestCase):
     def test_init(self):
         # use static values so we know what to look for in the reply
         subscription_info = {
@@ -348,6 +349,83 @@ class WebpushTestCase(unittest.TestCase):
         headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
         data = "Mary had a little lamb"
         WebPusher(subscription_info, requests_session=mock_session).send(data, headers)
+        assert subscription_info.get("endpoint") == mock_session.post.call_args[0][0]
+        pheaders = mock_session.post.call_args[1].get("headers")
+        assert pheaders.get("ttl") == "0"
+        assert pheaders.get("AUTHENTICATION") == headers.get("Authentication")
+        ckey = pheaders.get("crypto-key")
+        assert "pre-existing" in ckey
+        assert pheaders.get("content-encoding") == "aes128gcm"
+
+
+class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase):
+    @patch("aiohttp.request", new_callable=AsyncMock)
+    async def test_send(self, mock_post):
+        subscription_info = self._gen_subscription_info()
+        headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
+        data = "Mary had a little lamb"
+        await WebPusher(subscription_info).send_async(data, headers)
+        assert subscription_info.get("endpoint") == mock_post.call_args[0][0]
+        pheaders = mock_post.call_args[1].get("headers")
+        assert pheaders.get("ttl") == "0"
+        assert pheaders.get("AUTHENTICATION") == headers.get("Authentication")
+        ckey = pheaders.get("crypto-key")
+        assert "pre-existing" in ckey
+        assert pheaders.get("content-encoding") == "aes128gcm"
+
+    @patch("aiohttp.request", new_callable=AsyncMock)
+    async def test_send_empty(self, mock_post):
+        subscription_info = self._gen_subscription_info()
+        headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
+        await WebPusher(subscription_info).send_async("", headers)
+        assert subscription_info.get("endpoint") == mock_post.call_args[0][0]
+        pheaders = mock_post.call_args[1].get("headers")
+        assert pheaders.get("ttl") == "0"
+        assert "encryption" not in pheaders
+        assert pheaders.get("AUTHENTICATION") == headers.get("Authentication")
+        ckey = pheaders.get("crypto-key")
+        assert "pre-existing" in ckey
+
+    @patch("aiohttp.request", new_callable=AsyncMock)
+    async def test_send_no_headers(self, mock_post):
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        await WebPusher(subscription_info).send_async(data)
+        assert subscription_info.get("endpoint") == mock_post.call_args[0][0]
+        pheaders = mock_post.call_args[1].get("headers")
+        assert pheaders.get("ttl") == "0"
+        assert pheaders.get("content-encoding") == "aes128gcm"
+
+    @patch("aiohttp.request", new_callable=AsyncMock)
+    async def test_gcm(self, mock_post):
+        subscription_info = self._gen_subscription_info(
+            None, endpoint="https://android.googleapis.com/gcm/send/regid123"
+        )
+        headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
+        data = "Mary had a little lamb"
+        wp = WebPusher(subscription_info)
+        await wp.send_async(data, headers, gcm_key="gcm_key_value")
+        pdata = json.loads(mock_post.call_args[1].get("data"))
+        pheaders = mock_post.call_args[1].get("headers")
+        assert pdata["registration_ids"][0] == "regid123"
+        assert pheaders.get("authorization") == "key=gcm_key_value"
+        assert pheaders.get("content-type") == "application/json"
+
+    @patch("aiohttp.request", new_callable=AsyncMock)
+    async def test_timeout(self, mock_post):
+        mock_post.return_value.status_code = 200
+        subscription_info = self._gen_subscription_info()
+        await WebPusher(subscription_info).send_async(timeout=5.2)
+        assert mock_post.call_args[1].get("timeout") == 5.2
+
+    @patch("aiohttp.ClientSession", new_callable=AsyncMock)
+    async def test_send_using_requests_session(self, mock_session):
+        subscription_info = self._gen_subscription_info()
+        headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
+        data = "Mary had a little lamb"
+        await WebPusher(subscription_info, aiohttp_session=mock_session).send_async(
+            data, headers
+        )
         assert subscription_info.get("endpoint") == mock_session.post.call_args[0][0]
         pheaders = mock_session.post.call_args[1].get("headers")
         assert pheaders.get("ttl") == "0"
