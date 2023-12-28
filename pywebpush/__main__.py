@@ -1,8 +1,11 @@
 import argparse
 import os
 import json
+import logging
 
-from pywebpush import webpush
+from requests import JSONDecodeError
+
+from pywebpush import webpush, WebPushException
 
 
 def get_config():
@@ -21,25 +24,37 @@ def get_config():
     args = parser.parse_args()
 
     if not args.info:
-        raise Exception("Subscription Info argument missing.")
+        raise WebPushException("Subscription Info argument missing.")
     if not os.path.exists(args.info):
-        raise Exception("Subscription Info file missing.")
+        raise WebPushException("Subscription Info file missing.")
     try:
         with open(args.info) as r:
-            args.sub_info = json.loads(r.read())
+            try:
+                args.sub_info = json.loads(r.read())
+            except JSONDecodeError as e:
+                raise WebPushException(
+                    "Could not read the subscription info file: {}", e)
         if args.data:
             with open(args.data) as r:
                 args.data = r.read()
         if args.head:
             with open(args.head) as r:
-                args.head = json.loads(r.read())
+                try:
+                    args.head = json.loads(r.read())
+                except JSONDecodeError as e:
+                    raise WebPushException(
+                        "Could not read the header arguments: {}", e)
         if args.claims:
             if not args.key:
-                raise Exception("No private --key specified for claims")
+                raise WebPushException("No private --key specified for claims")
             with open(args.claims) as r:
-                args.claims = json.loads(r.read())
+                try:
+                    args.claims = json.loads(r.read())
+                except JSONDecodeError as e:
+                    raise WebPushException(
+                        "Could not read the VAPID claims file {}".format(e))
     except Exception as ex:
-        print("Couldn't read input {}.".format(ex))
+        logging.error("Couldn't read input {}.".format(ex))
         raise ex
     return args
 
@@ -60,7 +75,7 @@ def main():
             headers=args.head)
         print(result)
     except Exception as ex:
-        print("ERROR: {}".format(ex))
+        logging.error("{}".format(ex))
 
 
 if __name__ == "__main__":

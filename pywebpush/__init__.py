@@ -7,6 +7,7 @@ from copy import deepcopy
 import json
 import os
 import time
+import logging
 
 try:
     from urllib.parse import urlparse
@@ -164,7 +165,7 @@ class WebPusher:
 
     def verb(self, msg, *args, **kwargs):
         if self.verbose:
-            print(msg.format(*args, **kwargs))
+            logging.info(msg.format(*args, **kwargs))
 
     def _repad(self, data):
         """Add base64 padding to the end of a string, if required"""
@@ -198,6 +199,7 @@ class WebPusher:
         if content_encoding == "aesgcm":
             self.verb("Generating salt for aesgcm...")
             salt = os.urandom(16)
+            logging.debug("Salt: {}".format(salt))
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
@@ -442,7 +444,7 @@ def webpush(subscription_info,
     vapid_headers = None
     if vapid_claims:
         if verbose:
-            print("Generating VAPID headers...")
+            logging.info("Generating VAPID headers...")
         if not vapid_claims.get('aud'):
             url = urlparse(subscription_info.get('endpoint'))
             aud = "{}://{}".format(url.scheme, url.netloc)
@@ -454,24 +456,31 @@ def webpush(subscription_info,
             # encryption lives for 12 hours
             vapid_claims['exp'] = int(time.time()) + (12 * 60 * 60)
             if verbose:
-                print("Setting VAPID expry to {}...".format(
+                logging.info("Setting VAPID expry to {}...".format(
                     vapid_claims['exp']))
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if isinstance(vapid_private_key, Vapid01):
+            if verbose:
+                logging.info("Looks like we already have a valid VAPID key")
             vv = vapid_private_key
         elif os.path.isfile(vapid_private_key):
             # Presume that key from file is handled correctly by
             # py_vapid.
+            if verbose:
+                logging.info(
+                    "Reading VAPID key from file {}".format(vapid_private_key))
             vv = Vapid.from_file(
                 private_key_file=vapid_private_key)  # pragma no cover
         else:
+            if verbose:
+                logging.info("Reading VAPID key from arguments")
             vv = Vapid.from_string(private_key=vapid_private_key)
         if verbose:
-            print("\t claims: {}".format(vapid_claims))
+            logging.info("\t claims: {}".format(vapid_claims))
         vapid_headers = vv.sign(vapid_claims)
         if verbose:
-            print("\t headers: {}".format(vapid_headers))
+            logging.info("\t headers: {}".format(vapid_headers))
         headers.update(vapid_headers)
 
     response = WebPusher(
