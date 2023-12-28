@@ -1,5 +1,16 @@
 # I am terrible at keeping this up-to-date.
 
+## 2.0.0 (2024-01-02)
+chore: Update to modern python practices
+* include pyproject.toml file
+* use python typing
+* update to use pytest
+
+ *BREAKING_CHANGE*
+ `Webpusher.encode` will now return a `NoData` exception if no data is present to encode. Chances are
+ you probably won't be impacted by this change since most push messages contain data, but one never knows.
+ This alters the prior behavior where it would return `None`.
+
 ## 1.14.0 (2021-07-28)
 bug: accept all VAPID key instances (thanks @mthu)
 

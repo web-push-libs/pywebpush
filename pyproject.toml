@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dependencies = [
+    "wheel",
+    "aiohttp",
+    "cryptography>=2.6.1",
+    "http-ece>=1.1.0",
+    "requests>=2.21.0",
+    "six>=1.15.0",
+    "py-vapid>=1.7.0",
+]
+name = "pywebpush"
+authors = [{ name = "JR Conlin", email = "src+webpusher@jrconlin.com" }]
+description = "WebPush publication library"
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["webpush", "vapid", "notification"]
+classifiers = [
+    "Topic :: Internet :: WWW/HTTP",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+version = "2.0.0"
+[project.urls]
+Homepage = "https://github.com/web-push-libs/pywebpush"
+
+[project.optional-dependencies]
+dev = ["black", "mock", "pytest"]
+
+[project.scripts]
+pywebpush = "pywebpush.__main__:main"
