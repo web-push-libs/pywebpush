@@ -9,7 +9,7 @@ import os
 import time
 import logging
 from copy import deepcopy
-from typing import Union, Any, cast
+from typing import cast
 
 try:
     from urlparse import urlparse
@@ -131,10 +131,10 @@ class WebPusher:
 
     def __init__(
         self,
-        subscription_info,
-        requests_session=None,
-        aiohttp_session=None,
-        verbose=False,
+        subscription_info: dict[str, str | dict[str, str | bytes]],
+        requests_session: None | requests.Session = None,
+        aiohttp_session: None | aiohttp.client.ClientSession = None,
+        verbose: bool = False,
     ):
         """Initialize using the info provided by the client PushSubscription
         object (See
@@ -166,27 +166,35 @@ class WebPusher:
         self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
         if "keys" in subscription_info:
-            keys = self.subscription_info["keys"]
+            keys: dict[str, str | bytes] = cast(
+                dict[str, str | bytes], self.subscription_info["keys"]
+            )
             for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
                     raise WebPushException("Missing keys value: {}".format(k))
                 if isinstance(keys[k], six.text_type):
-                    keys[k] = bytes(keys[k].encode("utf8"))
-            receiver_raw = base64.urlsafe_b64decode(self._repad(keys["p256dh"]))
+                    keys[k] = bytes(cast(str, keys[k]).encode("utf8"))
+            receiver_raw = base64.urlsafe_b64decode(
+                self._repad(cast(bytes, keys["p256dh"]))
+            )
             if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
                 raise WebPushException("Invalid p256dh key specified")
             self.receiver_key = receiver_raw
-            self.auth_key = base64.urlsafe_b64decode(self._repad(keys["auth"]))
+            self.auth_key = base64.urlsafe_b64decode(
+                self._repad(cast(bytes, keys["auth"]))
+            )
 
-    def verb(self, msg, *args, **kwargs):
+    def verb(self, msg: str, *args, **kwargs):
         if self.verbose:
             logging.info(msg.format(*args, **kwargs))
 
-    def _repad(self, data):
+    def _repad(self, data: bytes):
         """Add base64 padding to the end of a string, if required"""
         return data + b"===="[: len(data) % 4]
 
-    def encode(self, data, content_encoding="aes128gcm") -> CaseInsensitiveDict:
+    def encode(
+        self, data: bytes, content_encoding: str = "aes128gcm"
+    ) -> CaseInsensitiveDict:
         """Encrypt the data.
 
         :param data: A serialized block of byte data (String, JSON, bit array,
@@ -258,7 +266,7 @@ class WebPusher:
                 reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
-    def as_curl(self, endpoint, encoded_data, headers):
+    def as_curl(self, endpoint: str, encoded_data: bytes, headers: dict[str, str]):
         """Return the send as a curl command.
 
         Useful for debugging. This will write out the encoded data to a local
@@ -292,13 +300,13 @@ class WebPusher:
 
     def _prepare_send_data(
         self,
-        data=None,
-        headers=None,
-        ttl=0,
-        gcm_key=None,
-        reg_id=None,
-        content_encoding="aes128gcm",
-        curl=False,
+        data: None | bytes = None,
+        headers: None | dict[str, str] = None,
+        ttl: int = 0,
+        gcm_key: None | str = None,
+        reg_id: None | str = None,
+        content_encoding: str = "aes128gcm",
+        curl: bool = False,
     ) -> dict:
         """Encode and send the data to the Push Service.
 
@@ -324,7 +332,7 @@ class WebPusher:
         # Encode the data.
         if headers is None:
             headers = dict()
-        encoded: Union[None, dict[str, Any]] = {}
+        encoded = CaseInsensitiveDict()
         headers = CaseInsensitiveDict(headers)
         if data:
             encoded = self.encode(data, content_encoding)
@@ -358,7 +366,9 @@ class WebPusher:
                 endpoint = "https://fcm.googleapis.com/fcm/send"
             reg_ids = []
             if not reg_id:
-                reg_id = self.subscription_info["endpoint"].rsplit("/", 1)[-1]
+                reg_id = cast(str, self.subscription_info["endpoint"]).rsplit("/", 1)[
+                    -1
+                ]
                 self.verb("Fetching out registration id: {}", reg_id)
             reg_ids.append(reg_id)
             gcm_data = dict()
@@ -394,7 +404,7 @@ class WebPusher:
 
         return {"endpoint": endpoint, "data": encoded_data, "headers": headers}
 
-    def send(self, *args, **kwargs) -> Union[Response, str]:
+    def send(self, *args, **kwargs) -> Response | str:
         """Encode and send the data to the Push Service"""
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
@@ -419,7 +429,7 @@ class WebPusher:
         )
         return resp
 
-    async def send_async(self, *args, **kwargs) -> Union[Any, str]:
+    async def send_async(self, *args, **kwargs) -> aiohttp.ClientResponse | str:
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
 
@@ -446,18 +456,18 @@ class WebPusher:
 
 
 def webpush(
-    subscription_info: dict[str, Any],
-    data: Union[None, str] = None,
-    vapid_private_key: Union[None, Vapid, str] = None,
-    vapid_claims: Union[None, dict[str, str | int]] = None,
+    subscription_info: dict[str, str | dict[str, str | bytes]],
+    data: None | str = None,
+    vapid_private_key: None | Vapid | str = None,
+    vapid_claims: None | dict[str, str | int] = None,
     content_encoding: str = "aes128gcm",
     curl: bool = False,
-    timeout: Union[None, float, tuple] = None,
+    timeout: None | float = None,
     ttl: int = 0,
     verbose: bool = False,
-    headers: Union[None, dict[str, Union[str, int, float]]] = None,
-    requests_session: Union[None, Any] = None,
-) -> Union[str, requests.Response]:
+    headers: None | dict[str, str | int | float] = None,
+    requests_session: None | requests.Session = None,
+) -> str | requests.Response:
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -496,7 +506,7 @@ def webpush(
     :param curl: Return as "curl" string instead of sending
     :type curl: bool
     :param timeout: POST requests timeout
-    :type timeout: float or tuple
+    :type timeout: float
     :param ttl: Time To Live
     :type ttl: int
     :param verbose: Provide verbose feedback
@@ -517,7 +527,7 @@ def webpush(
         if verbose:
             logging.info("Generating VAPID headers...")
         if not vapid_claims.get("aud"):
-            url = urlparse(subscription_info.get("endpoint"))
+            url = urlparse(cast(str, subscription_info.get("endpoint")))
             aud = "{}://{}".format(url.scheme, url.netloc)
             vapid_claims["aud"] = aud
         # Remember, passed structures are mutable in python.
