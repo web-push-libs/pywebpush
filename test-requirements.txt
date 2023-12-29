@@ -1,5 +1,4 @@
 -r requirements.txt
-pytest
-coverage>=4.4.1
-mock>=2.0.0
 black
+mock
+pytest

@@ -1,8 +1,13 @@
+### This is the much older setup script originally used by things like
+### setuptools and distutils. It's fallen out of favor by more recent
+### packaging tools, but is still referred to on occasion.
+### It's a hold-over from the Python 2.7 days, so there are a fair number
+### of sharp edges and stone clubs.
+### For more info see https://python-packaging.readthedocs.io/en/latest/index.html
 import io
 import os
 
 from setuptools import find_packages, setup
-
 
 __version__ = "2.0.0"
 
@@ -49,6 +54,9 @@ setup(
     zip_safe=False,
     install_requires=read_from("requirements.txt"),
     tests_require=read_from("test-requirements.txt"),
+    # This used to specify the entry point script that will
+    # be created, and still will if you run
+    # `python setup.py develop`
     entry_points={
     "console_scripts": [
         "pywebpush=pywebpush.__main__:main"

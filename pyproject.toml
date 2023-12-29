@@ -1,21 +1,22 @@
 [build-system]
+# This uses the semi-built-in "setuptools" which is currently the
+# python pariah, but there are a lot of behaviors that still carry.
+# This will draw a lot of information from `setup.py` and `setup.cfg`
+# For more info see https://packaging.python.org/en/latest/
+# (although, be fore-warned, it gets fairly wonky and obsessed with
+# details that you may not care about.)
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-dependencies = [
-    "wheel",
-    "aiohttp",
-    "cryptography>=2.6.1",
-    "http-ece>=1.1.0",
-    "requests>=2.21.0",
-    "six>=1.15.0",
-    "py-vapid>=1.7.0",
-]
+# `dependencies` are taken from `setup.py` and include the contents of the
+# `requirements.txt` file
 name = "pywebpush"
 authors = [{ name = "JR Conlin", email = "src+webpusher@jrconlin.com" }]
 description = "WebPush publication library"
 readme = "README.md"
+# Use the LICENSE file for our license, since "MPL2" isn't included in the
+# canonical list
 license = { file = "LICENSE" }
 keywords = ["webpush", "vapid", "notification"]
 classifiers = [
@@ -24,7 +25,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-version = "2.0.0"
+# use the following fields defined in the setup.py file
+# (When the guides talk about something being "dynamic", they
+# want you to add the field here.
+dynamic = ["version", "entry-points"]
+
 [project.urls]
 Homepage = "https://github.com/web-push-libs/pywebpush"
 
@@ -33,8 +38,4 @@ dev = ["black", "mock", "pytest"]
 
 # create the `pywebpush` helper using `python -m pip install --editable .`
 [project.scripts]
-pywebpush = "pywebpush.__main__:main"
-
-# dynamically specify the entry point from the setup.py arguments.
-[project.entry-points."pywebpush"]
 pywebpush = "pywebpush.__main__:main"
