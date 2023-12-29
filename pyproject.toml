@@ -31,5 +31,10 @@ Homepage = "https://github.com/web-push-libs/pywebpush"
 [project.optional-dependencies]
 dev = ["black", "mock", "pytest"]
 
+# create the `pywebpush` helper using `python -m pip install --editable .`
 [project.scripts]
+pywebpush = "pywebpush.__main__:main"
+
+# dynamically specify the entry point from the setup.py arguments.
+[project.entry-points."pywebpush"]
 pywebpush = "pywebpush.__main__:main"

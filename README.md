@@ -11,13 +11,9 @@ make of that what you will.
 
 ## Installation
 
-You'll need to run `python -m venv venv`.
-Then
+To work with this repo locally, you'll need to run `python -m venv venv`.
+Then `venv/bin/pip install --editable .`
 
-```bash
-venv/bin/pip install -r requirements.txt
-venv/bin/python setup.py develop
-```
 
 ## Usage
 

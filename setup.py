@@ -49,8 +49,9 @@ setup(
     zip_safe=False,
     install_requires=read_from("requirements.txt"),
     tests_require=read_from("test-requirements.txt"),
-    # entry_points="""
-    # [console_scripts]
-    # pywebpush = pywebpush.__main__:main
-    # """,
+    entry_points={
+    "console_scripts": [
+        "pywebpush=pywebpush.__main__:main"
+        ],
+    }
 )
