@@ -102,7 +102,7 @@ class WebpushTestUtils(unittest.TestCase):
             subscription_info = self._gen_subscription_info(recv_key)
             data = "Mary had a little lamb, with some nice mint jelly"
             push = WebPusher(subscription_info)
-            encoded = push.encode(data, content_encoding=content_encoding)
+            encoded = push.encode(data.encode(), content_encoding=content_encoding)
             """
             crypto_key = base64.urlsafe_b64encode(
                 self._get_pubkey_str(recv_key)
@@ -175,7 +175,7 @@ class WebpushTestUtils(unittest.TestCase):
                 repad(pheaders["authorization"].split(".")[1])
             ).decode("utf8")
         )
-        assert subscription_info.get("endpoint").startswith(auth["aud"])
+        assert subscription_info.get("endpoint", "").startswith(auth["aud"])
         assert "vapid" in pheaders.get("authorization")
         ckey = pheaders.get("crypto-key")
         assert "dh=" in ckey
@@ -189,7 +189,7 @@ class WebpushTestUtils(unittest.TestCase):
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
         vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
-        claims = dict(sub="mailto:ops@example.com", aud="https://example.com")
+        claims:dict[str, str|int] = dict(sub="mailto:ops@example.com", aud="https://example.com")
         webpush(
             subscription_info=subscription_info,
             data=data,
@@ -306,7 +306,7 @@ class WebpushTestUtils(unittest.TestCase):
             vapid_private_key=self.vapid_key,
             curl=True,
         )
-        result = cast(requests.Response, result)
+        result = cast(str, result)
         for s in [
             "curl -vX POST https://example.com",
             '-H "content-encoding: aes128gcm"',
@@ -465,6 +465,6 @@ class WebpushExceptionTestCase(unittest.TestCase):
             response.text
         )
         assert "{}".format(exp.response), "<Response [401]>"
-        assert exp.response.json().get("errno") == 109
+        assert cast(requests.Response, exp.response).json().get("errno") == 109
         exp = WebPushException("foo", [1, 2, 3])
         assert "{}".format(exp) == "WebPushException: foo, Response [1, 2, 3]"
