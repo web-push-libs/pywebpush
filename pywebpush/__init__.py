@@ -202,7 +202,7 @@ class WebPusher:
             logging.debug("Salt: {}".format(salt))
         # The server key is an ephemeral ECDH key used only for this
         # transaction
-        server_key = ec.generate_private_key(ec.SECP256R1, default_backend())
+        server_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         crypto_key = server_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint
