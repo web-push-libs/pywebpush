@@ -424,9 +424,10 @@ class WebPusher:
             **params,
         )
         self.verb(
-            "\nResponse:\n\tcode: {}\n\tbody: {}\n",
+            "\nResponse:\n\tcode: {}\n\tbody: {}\n\theaders: {}",
             resp.status_code,
             resp.text or "Empty",
+            resp.headers or "None"
         )
         return resp
 
