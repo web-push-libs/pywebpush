@@ -2,25 +2,30 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import asyncio
 import base64
-from copy import deepcopy
 import json
 import os
 import time
 import logging
+from copy import deepcopy
+from typing import cast, Union, Dict
 
 try:
-    from urllib.parse import urlparse
-except ImportError:  # pragma nocover
     from urlparse import urlparse
+except ImportError:  # pragma nocover
+    from urllib.parse import urlparse
 
-import six
+import aiohttp
 import http_ece
 import requests
+import six
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
+from functools import partial
 from py_vapid import Vapid, Vapid01
+from requests import Response
 
 
 class WebPushException(Exception):
@@ -44,6 +49,10 @@ class WebPushException(Exception):
             except AttributeError:
                 extra = ", Response {}".format(self.response)
         return "WebPushException: {}{}".format(self.message, extra)
+
+
+class NoData(Exception):
+    """Message contained No Data, no encoding required."""
 
 
 class CaseInsensitiveDict(dict):
@@ -111,16 +120,25 @@ class WebPusher:
         WebPusher(subscription_info).send(data, headers)
 
     """
+
     subscription_info = {}
     valid_encodings = [
         # "aesgcm128",  # this is draft-0, but DO NOT USE.
         "aesgcm",  # draft-httpbis-encryption-encoding-01
-        "aes128gcm"  # RFC8188 Standard encoding
+        "aes128gcm",  # RFC8188 Standard encoding
     ]
     verbose = False
 
-    def __init__(self, subscription_info, requests_session=None,
-                 verbose=False):
+    # Note: the type declarations are not valid under python 3.8,
+    def __init__(
+        self,
+        subscription_info: Dict[
+            str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+        ],
+        requests_session: Union[None, requests.Session] = None,
+        aiohttp_session: Union[None, aiohttp.client.ClientSession] = None,
+        verbose: bool = False,
+    ):
         """Initialize using the info provided by the client PushSubscription
         object (See
         https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe)
@@ -144,34 +162,42 @@ class WebPusher:
         else:
             self.requests_method = requests_session
 
-        if 'endpoint' not in subscription_info:
+        self.aiohttp_session = aiohttp_session
+
+        if "endpoint" not in subscription_info:
             raise WebPushException("subscription_info missing endpoint URL")
         self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
-        if 'keys' in subscription_info:
-            keys = self.subscription_info['keys']
-            for k in ['p256dh', 'auth']:
+        if "keys" in subscription_info:
+            keys: Dict[str, Union[str, bytes]] = cast(
+                Dict[str, Union[str, bytes]], self.subscription_info["keys"]
+            )
+            for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
                     raise WebPushException("Missing keys value: {}".format(k))
                 if isinstance(keys[k], six.text_type):
-                    keys[k] = bytes(keys[k].encode('utf8'))
+                    keys[k] = bytes(cast(str, keys[k]).encode("utf8"))
             receiver_raw = base64.urlsafe_b64decode(
-                self._repad(keys['p256dh']))
+                self._repad(cast(bytes, keys["p256dh"]))
+            )
             if len(receiver_raw) != 65 and receiver_raw[0] != "\x04":
                 raise WebPushException("Invalid p256dh key specified")
             self.receiver_key = receiver_raw
             self.auth_key = base64.urlsafe_b64decode(
-                self._repad(keys['auth']))
+                self._repad(cast(bytes, keys["auth"]))
+            )
 
-    def verb(self, msg, *args, **kwargs):
+    def verb(self, msg: str, *args, **kwargs):
         if self.verbose:
             logging.info(msg.format(*args, **kwargs))
 
-    def _repad(self, data):
+    def _repad(self, data: bytes):
         """Add base64 padding to the end of a string, if required"""
-        return data + b"===="[:len(data) % 4]
+        return data + b"===="[: len(data) % 4]
 
-    def encode(self, data, content_encoding="aes128gcm"):
+    def encode(
+        self, data: bytes, content_encoding: str = "aes128gcm"
+    ) -> CaseInsensitiveDict:
         """Encrypt the data.
 
         :param data: A serialized block of byte data (String, JSON, bit array,
@@ -184,18 +210,20 @@ class WebPusher:
         :type content_encoding: enum("aesgcm", "aes128gcm")
 
         """
+        reply = CaseInsensitiveDict()
         # Salt is a random 16 byte array.
         if not data:
             self.verb("No data found...")
-            return
+            raise NoData()
         if not self.auth_key or not self.receiver_key:
             raise WebPushException("No keys specified in subscription info")
         self.verb("Encoding data...")
         salt = None
         if content_encoding not in self.valid_encodings:
-            raise WebPushException("Invalid content encoding specified. "
-                                   "Select from " +
-                                   json.dumps(self.valid_encodings))
+            raise WebPushException(
+                "Invalid content encoding specified. "
+                "Select from " + json.dumps(self.valid_encodings)
+            )
         if content_encoding == "aesgcm":
             self.verb("Generating salt for aesgcm...")
             salt = os.urandom(16)
@@ -205,11 +233,11 @@ class WebPusher:
         server_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         crypto_key = server_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
+            format=serialization.PublicFormat.UncompressedPoint,
         )
 
         if isinstance(data, six.text_type):
-            data = bytes(data.encode('utf8'))
+            data = bytes(data.encode("utf8"))
         if content_encoding == "aes128gcm":
             self.verb("Encrypting to aes128gcm...")
             encrypted = http_ece.encrypt(
@@ -218,13 +246,12 @@ class WebPusher:
                 private_key=server_key,
                 dh=self.receiver_key,
                 auth_secret=self.auth_key,
-                version=content_encoding)
-            reply = CaseInsensitiveDict({
-                'body': encrypted
-            })
+                version=content_encoding,
+            )
+            reply["body"] = encrypted
         else:
             self.verb("Encrypting to aesgcm...")
-            crypto_key = base64.urlsafe_b64encode(crypto_key).strip(b'=')
+            crypto_key = base64.urlsafe_b64encode(crypto_key).strip(b"=")
             encrypted = http_ece.encrypt(
                 data,
                 salt=salt,
@@ -232,16 +259,15 @@ class WebPusher:
                 keyid=crypto_key.decode(),
                 dh=self.receiver_key,
                 auth_secret=self.auth_key,
-                version=content_encoding)
-            reply = CaseInsensitiveDict({
-                'crypto_key': crypto_key,
-                'body': encrypted,
-            })
+                version=content_encoding,
+            )
+            reply["crypto_key"] = crypto_key
+            reply["body"] = encrypted
             if salt:
-                reply['salt'] = base64.urlsafe_b64encode(salt).strip(b'=')
+                reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
-    def as_curl(self, endpoint, encoded_data, headers):
+    def as_curl(self, endpoint: str, encoded_data: bytes, headers: Dict[str, str]):
         """Return the send as a curl command.
 
         Useful for debugging. This will write out the encoded data to a local
@@ -257,23 +283,32 @@ class WebPusher:
 
         """
         header_list = [
-            '-H "{}: {}" \\ \n'.format(
-                key.lower(), val) for key, val in headers.items()
+            '-H "{}: {}" \\ \n'.format(key.lower(), val) for key, val in headers.items()
         ]
         data = ""
         if encoded_data:
             with open("encrypted.data", "wb") as f:
                 f.write(encoded_data)
             data = "--data-binary @encrypted.data"
-        if 'content-length' not in headers:
+        if "content-length" not in headers:
             self.verb("Generating content-length header...")
             header_list.append(
-                '-H "content-length: {}" \\ \n'.format(len(encoded_data)))
-        return ("""curl -vX POST {url} \\\n{headers}{data}""".format(
-            url=endpoint, headers="".join(header_list), data=data))
+                '-H "content-length: {}" \\ \n'.format(len(encoded_data))
+            )
+        return """curl -vX POST {url} \\\n{headers}{data}""".format(
+            url=endpoint, headers="".join(header_list), data=data
+        )
 
-    def send(self, data=None, headers=None, ttl=0, gcm_key=None, reg_id=None,
-             content_encoding="aes128gcm", curl=False, timeout=None):
+    def _prepare_send_data(
+        self,
+        data: Union[None, bytes] = None,
+        headers: Union[None, Dict[str, str]] = None,
+        ttl: int = 0,
+        gcm_key: Union[None, str] = None,
+        reg_id: Union[None, str] = None,
+        content_encoding: str = "aes128gcm",
+        curl: bool = False,
+    ) -> dict:
         """Encode and send the data to the Push Service.
 
         :param data: A serialized block of data (see encode() ).
@@ -294,14 +329,11 @@ class WebPusher:
         :type content_encoding: str
         :param curl: Display output as `curl` command instead of sending
         :type curl: bool
-        :param timeout: POST requests timeout
-        :type timeout: float or tuple
-
         """
         # Encode the data.
         if headers is None:
             headers = dict()
-        encoded = {}
+        encoded = CaseInsensitiveDict()
         headers = CaseInsensitiveDict(headers)
         if data:
             encoded = self.encode(data, content_encoding)
@@ -313,80 +345,132 @@ class WebPusher:
                     # should use ';' instead of ',' to append the headers.
                     # see
                     # https://github.com/webpush-wg/webpush-encryption/issues/6
-                    crypto_key += ';'
-                crypto_key += (
-                    "dh=" + encoded["crypto_key"].decode('utf8'))
-                headers.update({
-                    'crypto-key': crypto_key
-                })
+                    crypto_key += ";"
+                crypto_key += "dh=" + encoded["crypto_key"].decode("utf8")
+                headers.update({"crypto-key": crypto_key})
             if "salt" in encoded:
-                headers.update({
-                    'encryption': "salt=" + encoded['salt'].decode('utf8')
-                })
-            headers.update({
-                'content-encoding': content_encoding,
-            })
+                headers.update({"encryption": "salt=" + encoded["salt"].decode("utf8")})
+            headers.update(
+                {
+                    "content-encoding": content_encoding,
+                }
+            )
         if gcm_key:
             # guess if it is a legacy GCM project key or actual FCM key
             # gcm keys are all about 40 chars (use 100 for confidence),
             # fcm keys are 153-175 chars
             if len(gcm_key) < 100:
                 self.verb("Guessing this is legacy GCM...")
-                endpoint = 'https://android.googleapis.com/gcm/send'
+                endpoint = "https://android.googleapis.com/gcm/send"
             else:
                 self.verb("Guessing this is FCM...")
-                endpoint = 'https://fcm.googleapis.com/fcm/send'
+                endpoint = "https://fcm.googleapis.com/fcm/send"
             reg_ids = []
             if not reg_id:
-                reg_id = self.subscription_info['endpoint'].rsplit('/', 1)[-1]
+                reg_id = cast(str, self.subscription_info["endpoint"]).rsplit("/", 1)[
+                    -1
+                ]
                 self.verb("Fetching out registration id: {}", reg_id)
             reg_ids.append(reg_id)
             gcm_data = dict()
-            gcm_data['registration_ids'] = reg_ids
+            gcm_data["registration_ids"] = reg_ids
             if data:
-                gcm_data['raw_data'] = base64.b64encode(
-                    encoded.get('body')).decode('utf8')
-            gcm_data['time_to_live'] = int(
-                headers['ttl'] if 'ttl' in headers else ttl)
+                buffer = encoded.get("body")
+                if buffer:
+                    gcm_data["raw_data"] = base64.b64encode(buffer).decode("utf8")
+            gcm_data["time_to_live"] = int(headers["ttl"] if "ttl" in headers else ttl)
             encoded_data = json.dumps(gcm_data)
-            headers.update({
-                'Authorization': 'key='+gcm_key,
-                'Content-Type': 'application/json',
-            })
+            headers.update(
+                {
+                    "Authorization": "key=" + gcm_key,
+                    "Content-Type": "application/json",
+                }
+            )
         else:
-            encoded_data = encoded.get('body')
-            endpoint = self.subscription_info['endpoint']
+            encoded_data = encoded.get("body")
+            endpoint = self.subscription_info["endpoint"]
 
-        if 'ttl' not in headers or ttl:
+        if "ttl" not in headers or ttl:
             self.verb("Generating TTL of 0...")
-            headers['ttl'] = str(ttl or 0)
+            headers["ttl"] = str(ttl or 0)
         # Additionally useful headers:
         # Authorization / Crypto-Key (VAPID headers)
+
+        self.verb(
+            "\nSending request to" "\n\thost: {}\n\theaders: {}\n\tdata: {}",
+            endpoint,
+            headers,
+            encoded_data,
+        )
+
+        return {"endpoint": endpoint, "data": encoded_data, "headers": headers}
+
+    def send(self, *args, **kwargs) -> Union[Response, str]:
+        """Encode and send the data to the Push Service"""
+        timeout = kwargs.pop("timeout", 10000)
+        curl = kwargs.pop("curl", False)
+
+        params = self._prepare_send_data(*args, **kwargs)
+        endpoint = params.pop("endpoint")
+
         if curl:
-            return self.as_curl(endpoint, encoded_data, headers)
-        self.verb("\nSending request to"
-                  "\n\thost: {}\n\theaders: {}\n\tdata: {}",
-                  endpoint, headers, encoded_data)
-        resp = self.requests_method.post(endpoint,
-                                         data=encoded_data,
-                                         headers=headers,
-                                         timeout=timeout)
-        self.verb("\nResponse:\n\tcode: {}\n\tbody: {}\n",
-                  resp.status_code, resp.text or "Empty")
+            encoded_data = params["data"]
+            headers = params["headers"]
+            return self.as_curl(endpoint, encoded_data=encoded_data, headers=headers)
+
+        resp = self.requests_method.post(
+            endpoint,
+            timeout=timeout,
+            **params,
+        )
+        self.verb(
+            "\nResponse:\n\tcode: {}\n\tbody: {}\n",
+            resp.status_code,
+            resp.text or "Empty",
+        )
+        return resp
+
+    async def send_async(self, *args, **kwargs) -> Union[aiohttp.ClientResponse, str]:
+        timeout = kwargs.pop("timeout", 10000)
+        curl = kwargs.pop("curl", False)
+
+        params = self._prepare_send_data(*args, **kwargs)
+        endpoint = params.pop("endpoint")
+
+        if curl:
+            encoded_data = params["data"]
+            headers = params["headers"]
+            return self.as_curl(endpoint, encoded_data=encoded_data, headers=headers)
+        if self.aiohttp_session:
+            resp = await self.aiohttp_session.post(endpoint, timeout=timeout, **params)
+            resp_text = await resp.text()
+        else:
+            async with aiohttp.ClientSession() as session:
+                resp = await session.post(endpoint, timeout=timeout, **params)
+                resp_text = await resp.text()
+        self.verb(
+            "\nResponse:\n\tcode: {}\n\tbody: {}\n",
+            resp.status,
+            resp_text or "Empty",
+        )
         return resp
 
 
-def webpush(subscription_info,
-            data=None,
-            vapid_private_key=None,
-            vapid_claims=None,
-            content_encoding="aes128gcm",
-            curl=False,
-            timeout=None,
-            ttl=0,
-            verbose=False,
-            headers=None,
-            requests_session=None):
+def webpush(
+    subscription_info: Dict[
+        str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+    ],
+    data: Union[None, str] = None,
+    vapid_private_key: Union[None, Vapid, str] = None,
+    vapid_claims: Union[None, Dict[str, Union[str, int]]] = None,
+    content_encoding: str = "aes128gcm",
+    curl: bool = False,
+    timeout: Union[None, float] = None,
+    ttl: int = 0,
+    verbose: bool = False,
+    headers: Union[None, Dict[str, Union[str, int, float]]] = None,
+    requests_session: Union[None, requests.Session] = None,
+) -> Union[str, requests.Response]:
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -425,7 +509,7 @@ def webpush(subscription_info,
     :param curl: Return as "curl" string instead of sending
     :type curl: bool
     :param timeout: POST requests timeout
-    :type timeout: float or tuple
+    :type timeout: float
     :param ttl: Time To Live
     :type ttl: int
     :param verbose: Provide verbose feedback
@@ -445,19 +529,19 @@ def webpush(subscription_info,
     if vapid_claims:
         if verbose:
             logging.info("Generating VAPID headers...")
-        if not vapid_claims.get('aud'):
-            url = urlparse(subscription_info.get('endpoint'))
+        if not vapid_claims.get("aud"):
+            url = urlparse(cast(str, subscription_info.get("endpoint")))
             aud = "{}://{}".format(url.scheme, url.netloc)
-            vapid_claims['aud'] = aud
+            vapid_claims["aud"] = aud
         # Remember, passed structures are mutable in python.
         # It's possible that a previously set `exp` field is no longer valid.
-        if (not vapid_claims.get('exp')
-                or vapid_claims.get('exp') < int(time.time())):
+        if not vapid_claims.get("exp") or int(vapid_claims.get("exp") or 0) < int(
+            time.time()
+        ):
             # encryption lives for 12 hours
-            vapid_claims['exp'] = int(time.time()) + (12 * 60 * 60)
+            vapid_claims["exp"] = int(time.time()) + (12 * 60 * 60)
             if verbose:
-                logging.info("Setting VAPID expry to {}...".format(
-                    vapid_claims['exp']))
+                logging.info("Setting VAPID expry to {}...".format(vapid_claims["exp"]))
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if isinstance(vapid_private_key, Vapid01):
@@ -468,10 +552,8 @@ def webpush(subscription_info,
             # Presume that key from file is handled correctly by
             # py_vapid.
             if verbose:
-                logging.info(
-                    "Reading VAPID key from file {}".format(vapid_private_key))
-            vv = Vapid.from_file(
-                private_key_file=vapid_private_key)  # pragma no cover
+                logging.info("Reading VAPID key from file {}".format(vapid_private_key))
+            vv = Vapid.from_file(private_key_file=vapid_private_key)  # pragma no cover
         else:
             if verbose:
                 logging.info("Reading VAPID key from arguments")
@@ -493,8 +575,12 @@ def webpush(subscription_info,
         curl=curl,
         timeout=timeout,
     )
-    if not curl and response.status_code > 202:
-        raise WebPushException("Push failed: {} {}\nResponse body:{}".format(
-            response.status_code, response.reason, response.text),
-            response=response)
+    if not curl and cast(Response, response).status_code > 202:
+        response = cast(Response, response)
+        raise WebPushException(
+            "Push failed: {} {}\nResponse body:{}".format(
+                response.status_code, response.reason, response.text
+            ),
+            response=response,
+        )
     return response

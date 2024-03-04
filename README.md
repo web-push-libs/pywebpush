@@ -11,13 +11,9 @@ make of that what you will.
 
 ## Installation
 
-You'll need to run `python -m venv venv`.
-Then
+To work with this repo locally, you'll need to run `python -m venv venv`.
+Then `venv/bin/pip install --editable .`
 
-```bash
-venv/bin/pip install -r requirements.txt
-venv/bin/python setup.py develop
-```
 
 ## Usage
 
@@ -60,7 +56,7 @@ webpush(subscription_info,
 This will encode `data`, add the appropriate VAPID auth headers if required and send it to the push server identified
 in the `subscription_info` block.
 
-**Parameters**
+##### Parameters
 
 _subscription_info_ - The `dict` of the subscription info (described above).
 
@@ -85,7 +81,7 @@ e.g. the output of:
 openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 ```
 
-**Example**
+##### Example
 
 ```python
 from pywebpush import webpush, WebPushException
@@ -127,7 +123,7 @@ The following methods are available:
 
 Send the data using additional parameters. On error, returns a `WebPushException`
 
-**Parameters**
+##### Parameters
 
 _data_ Binary string of data to send
 
@@ -148,7 +144,7 @@ named `encrpypted.data`. This command is meant to be used for debugging purposes
 _timeout_ timeout for requests POST query.
 See [requests documentation](http://docs.python-requests.org/en/master/user/quickstart/#timeouts).
 
-**Example**
+##### Example
 
 to send from Chrome using the old GCM mode:
 
@@ -160,13 +156,17 @@ WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
 
 Encode the `data` for future use. On error, returns a `WebPushException`
 
-**Parameters**
+##### Parameters
 
 _data_ Binary string of data to send
 
 _content_encoding_ ECE content encoding type (defaults to "aes128gcm")
 
-**Example**
+*Note* This will return a `NoData` exception if the data is not present or empty. It is completely
+valid to send a WebPush notification with no data, but encoding is a no-op in that case. Best not
+to call it if you don't have data.
+
+##### Example
 
 ```python
 encoded_data = WebPush(subscription_info).encode(data)
