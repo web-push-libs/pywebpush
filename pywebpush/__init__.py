@@ -9,7 +9,7 @@ import os
 import time
 import logging
 from copy import deepcopy
-from typing import cast
+from typing import cast, Union, Dict
 
 try:
     from urlparse import urlparse
@@ -129,11 +129,14 @@ class WebPusher:
     ]
     verbose = False
 
+    # Note: the type declarations are not valid under python 3.8,
     def __init__(
         self,
-        subscription_info: dict[str, str | dict[str, str | bytes]],
-        requests_session: None | requests.Session = None,
-        aiohttp_session: None | aiohttp.client.ClientSession = None,
+        subscription_info: Dict[
+            str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+        ],
+        requests_session: Union[None, requests.Session] = None,
+        aiohttp_session: Union[None, aiohttp.client.ClientSession] = None,
         verbose: bool = False,
     ):
         """Initialize using the info provided by the client PushSubscription
@@ -166,8 +169,8 @@ class WebPusher:
         self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
         if "keys" in subscription_info:
-            keys: dict[str, str | bytes] = cast(
-                dict[str, str | bytes], self.subscription_info["keys"]
+            keys: Dict[str, Union[str, bytes]] = cast(
+                Dict[str, Union[str, bytes]], self.subscription_info["keys"]
             )
             for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
@@ -227,9 +230,7 @@ class WebPusher:
             logging.debug("Salt: {}".format(salt))
         # The server key is an ephemeral ECDH key used only for this
         # transaction
-        server_key = ec.generate_private_key(
-            cast(ec.EllipticCurve, ec.SECP256R1), default_backend()
-        )
+        server_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         crypto_key = server_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint,
@@ -266,7 +267,7 @@ class WebPusher:
                 reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
-    def as_curl(self, endpoint: str, encoded_data: bytes, headers: dict[str, str]):
+    def as_curl(self, endpoint: str, encoded_data: bytes, headers: Dict[str, str]):
         """Return the send as a curl command.
 
         Useful for debugging. This will write out the encoded data to a local
@@ -300,11 +301,11 @@ class WebPusher:
 
     def _prepare_send_data(
         self,
-        data: None | bytes = None,
-        headers: None | dict[str, str] = None,
+        data: Union[None, bytes] = None,
+        headers: Union[None, Dict[str, str]] = None,
         ttl: int = 0,
-        gcm_key: None | str = None,
-        reg_id: None | str = None,
+        gcm_key: Union[None, str] = None,
+        reg_id: Union[None, str] = None,
         content_encoding: str = "aes128gcm",
         curl: bool = False,
     ) -> dict:
@@ -404,7 +405,7 @@ class WebPusher:
 
         return {"endpoint": endpoint, "data": encoded_data, "headers": headers}
 
-    def send(self, *args, **kwargs) -> Response | str:
+    def send(self, *args, **kwargs) -> Union[Response, str]:
         """Encode and send the data to the Push Service"""
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
@@ -429,7 +430,7 @@ class WebPusher:
         )
         return resp
 
-    async def send_async(self, *args, **kwargs) -> aiohttp.ClientResponse | str:
+    async def send_async(self, *args, **kwargs) -> Union[aiohttp.ClientResponse, str]:
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
 
@@ -456,18 +457,20 @@ class WebPusher:
 
 
 def webpush(
-    subscription_info: dict[str, str | dict[str, str | bytes]],
-    data: None | str = None,
-    vapid_private_key: None | Vapid | str = None,
-    vapid_claims: None | dict[str, str | int] = None,
+    subscription_info: Dict[
+        str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+    ],
+    data: Union[None, str] = None,
+    vapid_private_key: Union[None, Vapid, str] = None,
+    vapid_claims: Union[None, Dict[str, Union[str, int]]] = None,
     content_encoding: str = "aes128gcm",
     curl: bool = False,
-    timeout: None | float = None,
+    timeout: Union[None, float] = None,
     ttl: int = 0,
     verbose: bool = False,
-    headers: None | dict[str, str | int | float] = None,
-    requests_session: None | requests.Session = None,
-) -> str | requests.Response:
+    headers: Union[None, Dict[str, Union[str, int, float]]] = None,
+    requests_session: Union[None, requests.Session] = None,
+) -> Union[str, requests.Response]:
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.

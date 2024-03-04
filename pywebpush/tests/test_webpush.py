@@ -3,7 +3,7 @@ import json
 import os
 import unittest
 import time
-from typing import cast
+from typing import cast, Union, Dict
 
 import http_ece
 import py_vapid
@@ -27,9 +27,7 @@ class WebpushTestUtils(unittest.TestCase):
 
     def _gen_subscription_info(self, recv_key=None, endpoint="https://example.com/"):
         if not recv_key:
-            recv_key = ec.generate_private_key(
-                cast(ec.EllipticCurve, ec.SECP256R1), default_backend()
-            )
+            recv_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         return {
             "endpoint": endpoint,
             "keys": {
@@ -96,9 +94,7 @@ class WebpushTestUtils(unittest.TestCase):
 
     def test_encode(self):
         for content_encoding in ["aesgcm", "aes128gcm"]:
-            recv_key = ec.generate_private_key(
-                cast(ec.EllipticCurve, ec.SECP256R1), default_backend()
-            )
+            recv_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
             subscription_info = self._gen_subscription_info(recv_key)
             data = "Mary had a little lamb, with some nice mint jelly"
             push = WebPusher(subscription_info)
@@ -189,7 +185,9 @@ class WebpushTestUtils(unittest.TestCase):
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
         vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
-        claims:dict[str, str|int] = dict(sub="mailto:ops@example.com", aud="https://example.com")
+        claims: Dict[str, Union[str, int]] = dict(
+            sub="mailto:ops@example.com", aud="https://example.com"
+        )
         webpush(
             subscription_info=subscription_info,
             data=data,
