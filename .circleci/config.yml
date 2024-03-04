@@ -13,8 +13,11 @@ jobs:
       - python/install-packages:
           pkg-manager: pip
       - run:
+          name: Build
+          command: pip3 install -r test-requirements.txt
+      - run:
           name: Run tests
-          command: python -m pytest
+          command: python -m pytest pywebpush
       - persist_to_workspace:
           root: ~/project
           paths:
