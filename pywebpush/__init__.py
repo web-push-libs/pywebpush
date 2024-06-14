@@ -19,7 +19,6 @@ except ImportError:  # pragma nocover
 import aiohttp
 import http_ece
 import requests
-import six
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
@@ -175,7 +174,7 @@ class WebPusher:
             for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
                     raise WebPushException("Missing keys value: {}".format(k))
-                if isinstance(keys[k], six.text_type):
+                if isinstance(keys[k], str):
                     keys[k] = bytes(cast(str, keys[k]).encode("utf8"))
             receiver_raw = base64.urlsafe_b64decode(
                 self._repad(cast(bytes, keys["p256dh"]))
@@ -236,7 +235,7 @@ class WebPusher:
             format=serialization.PublicFormat.UncompressedPoint,
         )
 
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = bytes(data.encode("utf8"))
         if content_encoding == "aes128gcm":
             self.verb("Encrypting to aes128gcm...")
