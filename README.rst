@@ -116,7 +116,7 @@ e.g. the output of:
    except WebPushException as ex:
        print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
        # Mozilla returns additional information in the body of the response.
-       if ex.response and ex.response.json():
+       if ex.response is not None and ex.response.json():
            extra = ex.response.json()
            print("Remote service replied with a {}:{}, {}",
                  extra.code,
