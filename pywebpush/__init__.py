@@ -41,7 +41,7 @@ class WebPushException(Exception):
 
     def __str__(self):
         extra = ""
-        if self.response:
+        if self.response is not None:
             try:
                 extra = ", Response {}".format(
                     self.response.text,
