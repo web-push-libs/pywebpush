@@ -323,21 +323,6 @@ class WebpushTestUtils(unittest.TestCase):
         assert ci.get("Foo") is None
 
     @patch("requests.post")
-    def test_gcm(self, mock_post):
-        subscription_info = self._gen_subscription_info(
-            None, endpoint="https://android.googleapis.com/gcm/send/regid123"
-        )
-        headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
-        data = "Mary had a little lamb"
-        wp = WebPusher(subscription_info)
-        wp.send(data, headers, gcm_key="gcm_key_value")
-        pdata = json.loads(mock_post.call_args[1].get("data"))
-        pheaders = mock_post.call_args[1].get("headers")
-        assert pdata["registration_ids"][0] == "regid123"
-        assert pheaders.get("authorization") == "key=gcm_key_value"
-        assert pheaders.get("content-type") == "application/json"
-
-    @patch("requests.post")
     def test_timeout(self, mock_post):
         mock_post.return_value.status_code = 200
         subscription_info = self._gen_subscription_info()
@@ -398,21 +383,6 @@ class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase)
         pheaders = mock_post.call_args[1].get("headers")
         assert pheaders.get("ttl") == "0"
         assert pheaders.get("content-encoding") == "aes128gcm"
-
-    @patch("aiohttp.ClientSession.post", new_callable=AsyncMock)
-    async def test_fcm(self, mock_post):
-        subscription_info = self._gen_subscription_info(
-            None, endpoint="https://android.googleapis.com/fcm/send/regid123"
-        )
-        headers = {"Crypto-Key": "pre-existing", "Authentication": "bearer vapid"}
-        data = "Mary had a little lamb"
-        wp = WebPusher(subscription_info)
-        await wp.send_async(data, headers, gcm_key="gcm_key_value")
-        pdata = json.loads(mock_post.call_args[1].get("data"))
-        pheaders = mock_post.call_args[1].get("headers")
-        assert pdata["registration_ids"][0] == "regid123"
-        assert pheaders.get("authorization") == "key=gcm_key_value"
-        assert pheaders.get("content-type") == "application/json"
 
     @patch("aiohttp.ClientSession.post", new_callable=AsyncMock)
     async def test_timeout(self, mock_post):

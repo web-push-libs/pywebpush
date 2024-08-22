@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import logging
+import math
 
 from requests import JSONDecodeError
 
@@ -15,6 +16,11 @@ def get_config():
     parser.add_argument("--head", help="Header Info JSON file")
     parser.add_argument("--claims", help="Vapid claim file")
     parser.add_argument("--key", help="Vapid private key file path")
+    parser.add_argument(
+        "--wns",
+        help="Include WNS cache header based on TTL",
+        default=False,
+        action="store_true")
     parser.add_argument(
         "--curl",
         help="Don't send, display as curl command",
@@ -53,6 +59,15 @@ def get_config():
                     args.head = json.loads(r.read())
                 except JSONDecodeError as e:
                     raise WebPushException("Could not read the header arguments: {}", e)
+        # Set the default "TTL"
+        args.head["ttl"] = args.head.get("ttl", "0")
+        if args.wns:
+            # NOTE: Microsoft also requires `X-WNS-Type` as
+            # `tile`, `toast`, `badge` or `raw`. This is not provided by this code.
+            if int(args.head.get("ttl", "0")) > 0:
+                args.head["x-wns-cache-policy"] = "cache"
+            else:
+                args.head["x-wns-cache-policy"] = "no-cache"
         if args.claims:
             if not args.key:
                 raise WebPushException("No private --key specified for claims")
