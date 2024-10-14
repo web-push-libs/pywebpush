@@ -9,7 +9,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 
 def read_from(file):
@@ -44,6 +44,7 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     ],
     keywords="push webpush publication",
     author="JR Conlin",
@@ -58,8 +59,6 @@ setup(
     # be created, and still will if you run
     # `python setup.py develop`
     entry_points={
-    "console_scripts": [
-        "pywebpush=pywebpush.__main__:main"
-        ],
-    }
+        "console_scripts": ["pywebpush=pywebpush.__main__:main"],
+    },
 )
