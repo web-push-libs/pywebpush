@@ -1,5 +1,8 @@
 # I am terrible at keeping this up-to-date.
 
+## 2.0.1 (2024-10-14)
+docs: Use License classifiers in pyproject.toml (thanks @sevdog)
+
 ## 2.0.0 (2024-01-02)
 chore: Update to modern python practices
 * include pyproject.toml file
