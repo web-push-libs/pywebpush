@@ -15,15 +15,13 @@ name = "pywebpush"
 authors = [{ name = "JR Conlin", email = "src+webpusher@jrconlin.com" }]
 description = "WebPush publication library"
 readme = "README.md"
-# Use the LICENSE file for our license, since "MPL2" isn't included in the
-# canonical list
-license = { file = "LICENSE" }
 keywords = ["webpush", "vapid", "notification"]
 classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
 ]
 # use the following fields defined in the setup.py file
 # (When the guides talk about something being "dynamic", they
