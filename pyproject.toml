@@ -1,17 +1,16 @@
 [build-system]
 # This uses the semi-built-in "setuptools" which is currently the
 # python pariah, but there are a lot of behaviors that still carry.
-# This will draw a lot of information from `setup.py` and `setup.cfg`
 # For more info see https://packaging.python.org/en/latest/
 # (although, be fore-warned, it gets fairly wonky and obsessed with
 # details that you may not care about.)
-requires = ["setuptools", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# `dependencies` are taken from `setup.py` and include the contents of the
-# `requirements.txt` file
 name = "pywebpush"
+version = "2.0.1"
+license = {text = "MPL-2.0"}
 authors = [{ name = "JR Conlin", email = "src+webpusher@jrconlin.com" }]
 description = "WebPush publication library"
 readme = "README.md"
@@ -23,11 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
 ]
-# use the following fields defined in the setup.py file
-# (When the guides talk about something being "dynamic", they
-# want you to add the field here.
-dynamic = ["version", "entry-points"]
-dependencies = ['aiohttp', 'cryptography>=2.6.1', 'http-ece>=1.1.0', 'requests>=2.21.0', 'six>=1.15.0', 'py-vapid>=1.7.0']
+dynamic = ["dependencies"]
 
 [project.urls]
 Homepage = "https://github.com/web-push-libs/pywebpush"
@@ -38,3 +33,9 @@ dev = ["black", "mock", "pytest"]
 # create the `pywebpush` helper using `python -m pip install --editable .`
 [project.scripts]
 pywebpush = "pywebpush.__main__:main"
+
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
+
+[tool.setuptools.packages.find]
+include = ["pywebpush*"]

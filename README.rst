@@ -19,7 +19,7 @@ You’ll need to run ``python -m venv venv``. Then
 .. code:: bash
 
    venv/bin/pip install -r requirements.txt
-   venv/bin/python setup.py develop
+   venv/bin/python -m pip install -e .
 
 Usage
 -----
