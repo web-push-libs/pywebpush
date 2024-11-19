@@ -9,7 +9,7 @@ import os
 
 from setuptools import find_packages, setup
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 
 def read_from(file):
@@ -50,7 +50,6 @@ setup(
     author="JR Conlin",
     author_email="src+webpusher@jrconlin.com",
     url="https://github.com/web-push-libs/pywebpush",
-    license="MPL2",
     include_package_data=True,
     zip_safe=False,
     install_requires=read_from("requirements.txt"),

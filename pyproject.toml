@@ -27,7 +27,14 @@ classifiers = [
 # (When the guides talk about something being "dynamic", they
 # want you to add the field here.
 dynamic = ["version", "entry-points"]
-dependencies = ['aiohttp', 'cryptography>=2.6.1', 'http-ece>=1.1.0', 'requests>=2.21.0', 'six>=1.15.0', 'py-vapid>=1.7.0']
+dependencies = [
+    'aiohttp',
+    'cryptography>=2.6.1',
+    'http-ece>=1.1.0',
+    'requests>=2.21.0',
+    'six>=1.15.0',
+    'py-vapid>=1.7.0',
+]
 
 [project.urls]
 Homepage = "https://github.com/web-push-libs/pywebpush"
