@@ -13,7 +13,10 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
-from pywebpush import WebPusher, NoData, WebPushException, CaseInsensitiveDict, webpush
+from pywebpush import (
+    WebPusher, NoData, WebPushException, CaseInsensitiveDict, webpush, 
+    webpush_async
+)
 
 
 class WebpushTestUtils(unittest.TestCase):
@@ -25,9 +28,13 @@ class WebpushTestUtils(unittest.TestCase):
         "M5xqEwuPM7VuQcyiLDhvovthPIXx+gsQRQ=="
     )
 
-    def _gen_subscription_info(self, recv_key=None, endpoint="https://example.com/"):
+    def _gen_subscription_info(
+        self, recv_key=None, endpoint="https://example.com/"
+    ):
         if not recv_key:
-            recv_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+            recv_key = ec.generate_private_key(
+                ec.SECP256R1(), default_backend()
+            )
         return {
             "endpoint": endpoint,
             "keys": {
@@ -436,6 +443,150 @@ class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase)
         ckey = pheaders.get("crypto-key")
         assert "pre-existing" in ckey
         assert pheaders.get("content-encoding") == "aes128gcm"
+
+    @patch("aiohttp.ClientSession.post", new_callable=AsyncMock)
+    async def test_webpush_async_vapid(self, mock_post):
+        mock_post.return_value.status = 200
+        mock_post.return_value.text = AsyncMock(return_value="")
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        await webpush_async(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=self.vapid_key,
+            vapid_claims={"sub": "mailto:ops@example.com"},
+            content_encoding="aesgcm",
+            headers={"Test-Header": "test-value"},
+        )
+        assert subscription_info.get("endpoint") == mock_post.call_args[0][0]
+        pheaders = mock_post.call_args[1].get("headers")
+        assert pheaders.get("ttl") == "0"
+
+        def repad(str):
+            return str + "===="[: len(str) % 4]
+
+        auth = json.loads(
+            base64.urlsafe_b64decode(
+                repad(pheaders["authorization"].split(".")[1])
+            ).decode("utf8")
+        )
+        assert subscription_info.get("endpoint", "").startswith(auth["aud"])
+        assert "vapid" in pheaders.get("authorization")
+        ckey = pheaders.get("crypto-key")
+        assert "dh=" in ckey
+        assert pheaders.get("content-encoding") == "aesgcm"
+        assert pheaders.get("test-header") == "test-value"
+
+    @patch.object(WebPusher, "send_async")
+    @patch.object(py_vapid.Vapid, "sign")
+    async def test_webpush_async_vapid_instance(self, vapid_sign, pusher_send):
+        mock_response = Mock()
+        mock_response.status = 200
+        pusher_send.return_value = mock_response
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
+        claims: Dict[str, Union[str, int]] = dict(
+            sub="mailto:ops@example.com", aud="https://example.com"
+        )
+        await webpush_async(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=vapid_key,
+            vapid_claims=claims,
+        )
+        vapid_sign.assert_called_once_with(claims)
+        pusher_send.assert_called_once()
+
+    @patch.object(WebPusher, "send_async")
+    @patch.object(py_vapid.Vapid, "sign")
+    async def test_webpush_async_vapid_exp(self, vapid_sign, pusher_send):
+        mock_response = Mock()
+        mock_response.status = 200
+        pusher_send.return_value = mock_response
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
+        claims = dict(
+            sub="mailto:ops@example.com",
+            aud="https://example.com",
+            exp=int(time.time() - 48600),
+        )
+        await webpush_async(
+            subscription_info=subscription_info,
+            data=data,
+            vapid_private_key=vapid_key,
+            vapid_claims=claims,
+        )
+        vapid_sign.assert_called_once_with(claims)
+        pusher_send.assert_called_once()
+        assert int(claims["exp"]) > int(time.time())
+
+    async def test_webpush_async_bad_vapid_no_key(self):
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        with self.assertRaises(WebPushException):
+            await webpush_async(
+                subscription_info=subscription_info,
+                data=data,
+                vapid_claims={
+                    "aud": "https://example.com",
+                    "sub": "mailto:ops@example.com",
+                },
+            )
+
+    @patch("aiohttp.ClientSession.post", new_callable=AsyncMock)
+    async def test_webpush_async_bad_vapid_bad_return(self, mock_post):
+        mock_post.return_value.status = 410
+        mock_post.return_value.reason = "Gone"
+        mock_post.return_value.text = AsyncMock(
+            return_value="Subscription expired"
+        )
+
+        subscription_info = self._gen_subscription_info()
+        data = "Mary had a little lamb"
+        with self.assertRaises(WebPushException):
+            await webpush_async(
+                subscription_info=subscription_info,
+                data=data,
+                vapid_claims={
+                    "aud": "https://example.com",
+                    "sub": "mailto:ops@example.com",
+                },
+                vapid_private_key=self.vapid_key,
+            )
+
+    @patch("aiohttp.ClientSession.post", new_callable=AsyncMock)
+    async def test_webpush_async_timeout(self, mock_post):
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value="")
+        mock_post.return_value = mock_response
+        subscription_info = self._gen_subscription_info()
+        await webpush_async(subscription_info, timeout=10.001)
+        assert mock_post.call_args[1].get("timeout") == 10.001
+
+    async def test_webpush_async_as_curl(self):
+        subscription_info = self._gen_subscription_info()
+        result = await webpush_async(
+            subscription_info,
+            data="Mary had a little lamb",
+            vapid_claims={
+                "aud": "https://example.com",
+                "sub": "mailto:ops@example.com",
+            },
+            vapid_private_key=self.vapid_key,
+            curl=True,
+        )
+        result = cast(str, result)
+        for s in [
+            "curl -vX POST https://example.com",
+            '-H "content-encoding: aes128gcm"',
+            '-H "authorization: vapid ',
+            '-H "ttl: 0"',
+            '-H "content-length:',
+        ]:
+            assert s in result, "missing: {}".format(s)
 
 
 class WebpushExceptionTestCase(unittest.TestCase):
