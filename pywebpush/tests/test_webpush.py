@@ -4,11 +4,11 @@ import os
 import unittest
 import time
 from typing import cast, Union, Dict
+from unittest.mock import patch, Mock, AsyncMock
 
 import http_ece
 import py_vapid
 import requests
-from mock import patch, Mock, AsyncMock
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
