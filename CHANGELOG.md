@@ -1,5 +1,10 @@
 # I am terrible at keeping this up-to-date.
 
+## 2.1.2 (2025-11-10)
+chore: fix formatting
+chore: update CHANGELOG
+chore: note admin update
+
 ## 2.1.1 (2025-10-14)
 
 This was an administrative push to test a new publication system.
