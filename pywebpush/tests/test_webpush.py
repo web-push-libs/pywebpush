@@ -14,8 +14,12 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
 from pywebpush import (
-    WebPusher, NoData, WebPushException, CaseInsensitiveDict, webpush, 
-    webpush_async
+    WebPusher,
+    NoData,
+    WebPushException,
+    CaseInsensitiveDict,
+    webpush,
+    webpush_async,
 )
 
 
@@ -28,13 +32,9 @@ class WebpushTestUtils(unittest.TestCase):
         "M5xqEwuPM7VuQcyiLDhvovthPIXx+gsQRQ=="
     )
 
-    def _gen_subscription_info(
-        self, recv_key=None, endpoint="https://example.com/"
-    ):
+    def _gen_subscription_info(self, recv_key=None, endpoint="https://example.com/"):
         if not recv_key:
-            recv_key = ec.generate_private_key(
-                ec.SECP256R1(), default_backend()
-            )
+            recv_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         return {
             "endpoint": endpoint,
             "keys": {
@@ -539,9 +539,7 @@ class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase)
     async def test_webpush_async_bad_vapid_bad_return(self, mock_post):
         mock_post.return_value.status = 410
         mock_post.return_value.reason = "Gone"
-        mock_post.return_value.text = AsyncMock(
-            return_value="Subscription expired"
-        )
+        mock_post.return_value.text = AsyncMock(return_value="Subscription expired")
 
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
