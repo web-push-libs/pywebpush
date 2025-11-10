@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pywebpush"
 version = "2.1.2"
-license = {text = "MPL-2.0"}
+license = { text = "MPL-2.0" }
 authors = [{ name = "JR Conlin", email = "src+webpusher@jrconlin.com" }]
 description = "WebPush publication library"
 readme = "README.md"
@@ -20,7 +20,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
 ]
 dynamic = ["dependencies"]
 
@@ -35,7 +34,7 @@ dev = ["black", "mock", "pytest"]
 pywebpush = "pywebpush.__main__:main"
 
 [tool.setuptools.dynamic]
-dependencies = {file = "requirements.txt"}
+dependencies = { file = "requirements.txt" }
 
 [tool.setuptools.packages.find]
 include = ["pywebpush*"]
