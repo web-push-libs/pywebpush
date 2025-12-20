@@ -1,5 +1,14 @@
 # I am terrible at keeping this up-to-date.
 
+## 2.1.2 (2025-11-10)
+chore: fix formatting
+chore: update CHANGELOG
+chore: note admin update
+
+## 2.1.1 (2025-10-14)
+
+This was an administrative push to test a new publication system.
+
 ## 2.1.0 (2025-09-29)
 
 feat: Add a async_webpush one call func and tests (15cf848)[https://github.com/web-push-libs/pywebpush/commit/15cf84885b4bc1cd4e8e58a8fc8f84bfc9b3387e] (thanks (@AlexUnder2003)[https://github.com/web-push-libs/pywebpush/commits?author=AlexUnder2003])
