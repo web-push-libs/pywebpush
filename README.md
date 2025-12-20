@@ -1,8 +1,5 @@
 # Webpush Data encryption library for Python
 
-[![Build Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=main)](https://travis-ci.org/web-push-libs/pywebpush)
-[![Requirements Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=main)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=main)
-
 This library is available on [pypi as pywebpush](https://pypi.python.org/pypi/pywebpush).
 Source is available on [github](https://github.com/mozilla-services/pywebpush).
 Please note: This library was designated as a `Critical Project` by PyPi, it is currently
