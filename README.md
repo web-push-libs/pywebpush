@@ -35,6 +35,11 @@ referenced to the user who requested it, and recall it when there's
 a new push subscription update is left as an exercise for the
 reader.
 
+_*Note:*_ Some platforms (like Microsoft Windows) require additional
+headers specified for the Push call. These additional headers are not
+standard and may be rejected by other Push services. Please see
+[Special Instructions](#special-instructions) below.
+
 ### Sending Data using `webpush()` One Call
 
 In many cases, your code will be sending a single message to many
@@ -53,7 +58,7 @@ webpush(subscription_info,
 This will encode `data`, add the appropriate VAPID auth headers if required and send it to the push server identified
 in the `subscription_info` block.
 
-##### Parameters
+#### Parameters
 
 _subscription_info_ - The `dict` of the subscription info (described above).
 
@@ -78,7 +83,7 @@ e.g. the output of:
 openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 ```
 
-##### Example
+#### Example
 
 ```python
 from pywebpush import webpush, WebPushException
@@ -116,7 +121,7 @@ can pass just `wp = WebPusher(subscription_info)`. This will return a `WebPusher
 
 The following methods are available:
 
-#### `.send(data, headers={}, ttl=0, gcm_key="", reg_id="", content_encoding="aes128gcm", curl=False, timeout=None)`
+#### `.send(data, headers={}, ttl=0, reg_id="", content_encoding="aes128gcm", curl=False, timeout=None)`
 
 Send the data using additional parameters. On error, returns a `WebPushException`
 
@@ -127,9 +132,6 @@ _data_ Binary string of data to send
 _headers_ A `dict` containing any additional headers to send
 
 _ttl_ Message Time To Live on Push Server waiting for the client to reconnect (in seconds)
-
-_gcm_key_ Google Cloud Messaging key (if using the older GCM push system) This is the API key obtained from the Google
-Developer Console.
 
 _reg_id_ Google Cloud Messaging registration ID (will be extracted from endpoint if not specified)
 
@@ -143,10 +145,10 @@ See [requests documentation](http://docs.python-requests.org/en/master/user/quic
 
 ##### Example
 
-to send from Chrome using the old GCM mode:
+to send to a user on Chrome:
 
 ```python
-WebPusher(subscription_info).send(data, headers, ttl, gcm_key)
+WebPusher(subscription_info).send(data, headers, ttl)
 ```
 
 #### `.encode(data, content_encoding="aes128gcm")`
@@ -159,7 +161,7 @@ _data_ Binary string of data to send
 
 _content_encoding_ ECE content encoding type (defaults to "aes128gcm")
 
-*Note* This will return a `NoData` exception if the data is not present or empty. It is completely
+_*Note*_ This will return a `NoData` exception if the data is not present or empty. It is completely
 valid to send a WebPush notification with no data, but encoding is a no-op in that case. Best not
 to call it if you don't have data.
 
@@ -171,8 +173,7 @@ encoded_data = WebPush(subscription_info).encode(data)
 
 ## Stand Alone Webpush
 
-If you're not really into coding your own solution, there's also a "stand-alone" `pywebpush` command in the
-./bin directory.
+If you're not really into coding your own solution, there's also a "stand-alone" `pywebpush` command in the `./bin` directory.
 
 This uses two files:
 
@@ -198,3 +199,40 @@ If you're interested in just testing your applications WebPush interface, you co
 which will encrypt and send the contents of `stuff_to_send.data`.
 
 See `./bin/pywebpush --help` for available commands and options.
+
+## Special Instructions
+
+### Windows
+
+[Microsoft requires](https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/push-request-response-headers#request-parameters)
+one extra header and suggests several additional headers. Users have reported that not including
+these headers can cause notifications to fail to appear. These additional headers are non-standard
+and may be rejected by other platforms. You should be cautious including them with calls to
+non-Microsoft platforms, or to non-Microsoft destinations.
+
+As of 2024-Apr-19, Microsoft requires an `X-WNS-Type` header. As an example, you can include this
+header within the command line call:
+
+Content of the `windows_headers.json` file:
+
+```json
+{"X-WNS-Type":"wns/toast", "TTL":600, "Content-Type": "text/xml"}
+```
+
+_*Note*_ : This includes both the `TTL` set to 10 minutes and the required matching `Content-Type` header for `wns/toast`.
+
+```bash
+pywebpush --data stuff_to_send.xml \
+   --info edge_user_info.json \
+   --head windows_headers.json \
+   --claims vapid_claims.json
+```
+
+### Google Cloud Messaging (GCM)
+
+Please note that GCM has been sunset by Google. Providers should
+use [Firebase Cloud Messaging](https://firebase.google.com/support/troubleshooter/fcm/tokens/gcm) instead.
+
+Please also note that sending messages directly to FCM is not supported by this library. In the past, you could use an insecure `gcm_key` as a proxy for the authentication service. [This was disabled in June 2024](https://firebase.google.com/docs/cloud-messaging/auth-server#authorize-legacy-protocol-send-requests).
+
+Sending WebPush messages to Google Chrome users should not be impacted by this change.
