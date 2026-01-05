@@ -1,14 +1,20 @@
 # I am terrible at keeping this up-to-date.
-## 2.1.0 (2024-04-19)
-Add comment discussing additional work for Windows Notification Service (WNS)
-* Update the README.md file to mention the required, non-standard headers.
 
-*BREAKING_CHANGE*
+## 2.2.0 (2026-)
+
+- Update `rst` files to reflect `md` file changes
+
+Add comment discussing additional work for Windows Notification Service (WNS)
+
+- Update the README.md file to mention the required, non-standard headers.
+
+_BREAKING_CHANGE_
 This version also drops legacy support for GCM/FCM authorization keys, since those items
 are obsolete according to Google.
 See https://firebase.google.com/docs/cloud-messaging/auth-server#authorize-legacy-protocol-send-requests
 
 ## 2.1.2 (2025-11-10)
+
 chore: fix formatting
 chore: update CHANGELOG
 chore: note admin update
