@@ -303,10 +303,7 @@ class WebPusher:
         data: Union[None, bytes] = None,
         headers: Union[None, Dict[str, str]] = None,
         ttl: int = 0,
-        gcm_key: Union[None, str] = None,
-        reg_id: Union[None, str] = None,
         content_encoding: str = "aes128gcm",
-        curl: bool = False,
     ) -> dict:
         """Encode and send the data to the Push Service.
 
@@ -318,16 +315,8 @@ class WebPusher:
             recipient is not online. (Defaults to "0", which discards the
             message immediately if the recipient is unavailable.)
         :type ttl: int
-        :param gcm_key: API key obtained from the Google Developer Console.
-            Needed if endpoint is https://android.googleapis.com/gcm/send
-        :type gcm_key: string
-        :param reg_id: registration id of the recipient. If not provided,
-            it will be extracted from the endpoint.
-        :type reg_id: str
         :param content_encoding: ECE content encoding (defaults to "aes128gcm")
         :type content_encoding: str
-        :param curl: Display output as `curl` command instead of sending
-        :type curl: bool
         """
         # Encode the data.
         if headers is None:
@@ -354,40 +343,8 @@ class WebPusher:
                     "content-encoding": content_encoding,
                 }
             )
-        if gcm_key:
-            # guess if it is a legacy GCM project key or actual FCM key
-            # gcm keys are all about 40 chars (use 100 for confidence),
-            # fcm keys are 153-175 chars
-            if len(gcm_key) < 100:
-                self.verb("Guessing this is legacy GCM...")
-                endpoint = "https://android.googleapis.com/gcm/send"
-            else:
-                self.verb("Guessing this is FCM...")
-                endpoint = "https://fcm.googleapis.com/fcm/send"
-            reg_ids = []
-            if not reg_id:
-                reg_id = cast(str, self.subscription_info["endpoint"]).rsplit("/", 1)[
-                    -1
-                ]
-                self.verb("Fetching out registration id: {}", reg_id)
-            reg_ids.append(reg_id)
-            gcm_data = dict()
-            gcm_data["registration_ids"] = reg_ids
-            if data:
-                buffer = encoded.get("body")
-                if buffer:
-                    gcm_data["raw_data"] = base64.b64encode(buffer).decode("utf8")
-            gcm_data["time_to_live"] = int(headers["ttl"] if "ttl" in headers else ttl)
-            encoded_data = json.dumps(gcm_data)
-            headers.update(
-                {
-                    "Authorization": "key=" + gcm_key,
-                    "Content-Type": "application/json",
-                }
-            )
-        else:
-            encoded_data = encoded.get("body")
-            endpoint = self.subscription_info["endpoint"]
+        encoded_data = encoded.get("body")
+        endpoint = self.subscription_info["endpoint"]
 
         if "ttl" not in headers or ttl:
             self.verb("Generating TTL of 0...")
@@ -423,9 +380,10 @@ class WebPusher:
             **params,
         )
         self.verb(
-            "\nResponse:\n\tcode: {}\n\tbody: {}\n",
+            "\nResponse:\n\tcode: {}\n\tbody: {}\n\theaders: {}",
             resp.status_code,
             resp.text or "Empty",
+            resp.headers or "None"
         )
         return resp
 
