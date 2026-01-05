@@ -19,7 +19,6 @@ except ImportError:  # pragma nocover
 import aiohttp
 import http_ece
 import requests
-import six
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
@@ -41,7 +40,7 @@ class WebPushException(Exception):
 
     def __str__(self):
         extra = ""
-        if self.response:
+        if self.response is not None:
             try:
                 extra = ", Response {}".format(
                     self.response.text,
@@ -175,7 +174,7 @@ class WebPusher:
             for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
                     raise WebPushException("Missing keys value: {}".format(k))
-                if isinstance(keys[k], six.text_type):
+                if isinstance(keys[k], str):
                     keys[k] = bytes(cast(str, keys[k]).encode("utf8"))
             receiver_raw = base64.urlsafe_b64decode(
                 self._repad(cast(bytes, keys["p256dh"]))
@@ -236,7 +235,7 @@ class WebPusher:
             format=serialization.PublicFormat.UncompressedPoint,
         )
 
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = bytes(data.encode("utf8"))
         if content_encoding == "aes128gcm":
             self.verb("Encrypting to aes128gcm...")
@@ -538,6 +537,146 @@ def webpush(
         raise WebPushException(
             "Push failed: {} {}\nResponse body:{}".format(
                 response.status_code, response.reason, response.text
+            ),
+            response=response,
+        )
+    return response
+
+
+async def webpush_async(
+    subscription_info: Dict[
+        str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+    ],
+    data: Union[None, str] = None,
+    vapid_private_key: Union[None, Vapid, str] = None,
+    vapid_claims: Union[None, Dict[str, Union[str, int]]] = None,
+    content_encoding: str = "aes128gcm",
+    curl: bool = False,
+    timeout: Union[None, float] = None,
+    ttl: int = 0,
+    verbose: bool = False,
+    headers: Union[None, Dict[str, Union[str, int, float]]] = None,
+    aiohttp_session: Union[None, aiohttp.ClientSession] = None,
+) -> Union[str, aiohttp.ClientResponse]:
+    """
+        Async version of webpush function. One call solution to encode and send 
+        `data` to the endpoint contained in `subscription_info` using optional 
+        VAPID auth headers.
+
+        Example:
+
+        .. code-block:: python
+
+        from pywebpush import webpush_async
+        import asyncio
+
+        async def send_notification():
+            response = await webpush_async(
+                subscription_info={
+                    "endpoint": "https://push.example.com/v1/abcd",
+                    "keys": {"p256dh": "0123abcd...",
+                             "auth": "001122..."}
+                     },
+                data="Mary had a little lamb, with a nice mint jelly",
+                vapid_private_key="path/to/key.pem",
+                vapid_claims={"sub": "YourNameHere@example.com"}
+                )
+
+        asyncio.run(send_notification())
+
+        No additional method call is required. Any non-success will throw a
+        `WebPushException`.
+
+    :param subscription_info: Provided by the client call
+    :type subscription_info: dict
+    :param data: Serialized data to send
+    :type data: str
+    :param vapid_private_key: Vapid instance or path to vapid private key PEM \
+                              or encoded str
+    :type vapid_private_key: Union[Vapid, str]
+    :param vapid_claims: Dictionary of claims ('sub' required)
+    :type vapid_claims: dict
+    :param content_encoding: Optional content type string
+    :type content_encoding: str
+    :param curl: Return as "curl" string instead of sending
+    :type curl: bool
+    :param timeout: POST requests timeout
+    :type timeout: float
+    :param ttl: Time To Live
+    :type ttl: int
+    :param verbose: Provide verbose feedback
+    :type verbose: bool
+    :param headers: Dictionary of extra HTTP headers to include
+    :type headers: dict
+    :param aiohttp_session: Optional aiohttp ClientSession for connection reuse
+    :type aiohttp_session: aiohttp.ClientSession
+    :return aiohttp.ClientResponse or string
+
+    """
+    if headers is None:
+        headers = dict()
+    else:
+        # Ensure we don't leak VAPID headers by mutating the passed in dict.
+        headers = headers.copy()
+
+    vapid_headers = None
+    if vapid_claims:
+        if verbose:
+            logging.info("Generating VAPID headers...")
+        if not vapid_claims.get("aud"):
+            url = urlparse(cast(str, subscription_info.get("endpoint")))
+            aud = "{}://{}".format(url.scheme, url.netloc)
+            vapid_claims["aud"] = aud
+        # Remember, passed structures are mutable in python.
+        # It's possible that a previously set `exp` field is no longer valid.
+        if not vapid_claims.get("exp") or int(vapid_claims.get("exp") or 0) < int(
+            time.time()
+        ):
+            # encryption lives for 12 hours
+            vapid_claims["exp"] = int(time.time()) + (12 * 60 * 60)
+            if verbose:
+                logging.info(
+                    "Setting VAPID expiry to {}...".format(vapid_claims["exp"])
+                )
+        if not vapid_private_key:
+            raise WebPushException("VAPID dict missing 'private_key'")
+        if isinstance(vapid_private_key, Vapid01):
+            if verbose:
+                logging.info("Looks like we already have a valid VAPID key")
+            vv = vapid_private_key
+        elif os.path.isfile(vapid_private_key):
+            # Presume that key from file is handled correctly by
+            # py_vapid.
+            if verbose:
+                logging.info("Reading VAPID key from file {}".format(vapid_private_key))
+            vv = Vapid.from_file(private_key_file=vapid_private_key)  # pragma no cover
+        else:
+            if verbose:
+                logging.info("Reading VAPID key from arguments")
+            vv = Vapid.from_string(private_key=vapid_private_key)
+        if verbose:
+            logging.info("\t claims: {}".format(vapid_claims))
+        vapid_headers = vv.sign(vapid_claims)
+        if verbose:
+            logging.info("\t headers: {}".format(vapid_headers))
+        headers.update(vapid_headers)
+
+    response = await WebPusher(
+        subscription_info, aiohttp_session=aiohttp_session, verbose=verbose
+    ).send_async(
+        data,
+        headers,
+        ttl=ttl,
+        content_encoding=content_encoding,
+        curl=curl,
+        timeout=timeout,
+    )
+    if not curl and cast(aiohttp.ClientResponse, response).status > 202:
+        response = cast(aiohttp.ClientResponse, response)
+        response_text = await response.text()
+        raise WebPushException(
+            "Push failed: {} {}\nResponse body:{}".format(
+                response.status, response.reason, response_text
             ),
             response=response,
         )

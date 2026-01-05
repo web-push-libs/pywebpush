@@ -1,8 +1,5 @@
 # Webpush Data encryption library for Python
 
-[![Build Status](https://travis-ci.org/web-push-libs/pywebpush.svg?branch=main)](https://travis-ci.org/web-push-libs/pywebpush)
-[![Requirements Status](https://requires.io/github/web-push-libs/pywebpush/requirements.svg?branch=main)](https://requires.io/github/web-push-libs/pywebpush/requirements/?branch=main)
-
 This library is available on [pypi as pywebpush](https://pypi.python.org/pypi/pywebpush).
 Source is available on [github](https://github.com/mozilla-services/pywebpush).
 Please note: This library was designated as a `Critical Project` by PyPi, it is currently
@@ -108,7 +105,7 @@ try:
 except WebPushException as ex:
     print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
     # Mozilla returns additional information in the body of the response.
-    if ex.response and ex.response.json():
+    if ex.response is not None and ex.response.json():
         extra = ex.response.json()
         print("Remote service replied with a {}:{}, {}",
               extra.code,
