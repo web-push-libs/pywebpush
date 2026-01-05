@@ -14,12 +14,8 @@ make of that what you will.
 Installation
 ------------
 
-You’ll need to run ``python -m venv venv``. Then
-
-.. code:: bash
-
-   venv/bin/pip install -r requirements.txt
-   venv/bin/python -m pip install -e .
+To work with this repo locally, you’ll need to run
+``python -m venv venv``. Then ``venv/bin/pip install --editable .``
 
 Usage
 -----
@@ -35,7 +31,10 @@ As illustration, a ``subscription_info`` object may look like:
 
 .. code:: json
 
-   {"endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...", "keys": {"auth": "k8J...", "p256dh": "BOr..."}}
+   {
+     "endpoint": "https://updates.push.services.mozilla.com/push/v1/gAA...",
+     "keys": { "auth": "k8J...", "p256dh": "BOr..." }
+   }
 
 How you send the PushSubscription data to your backend, store it
 referenced to the user who requested it, and recall it when there’s a
@@ -60,7 +59,8 @@ This will encode ``data``, add the appropriate VAPID auth headers if
 required and send it to the push server identified in the
 ``subscription_info`` block.
 
-**Parameters**
+Parameters
+''''''''''
 
 *subscription_info* - The ``dict`` of the subscription info (described
 above).
@@ -78,7 +78,9 @@ standard form.
 authorization (See
 `py_vapid <https://github.com/web-push-libs/vapid/tree/master/python>`__
 for more details). If ``aud`` is not specified, pywebpush will attempt
-to auto-fill from the ``endpoint``.
+to auto-fill from the ``endpoint``. If ``exp`` is not specified or set
+in the past, it will be set to 12 hours from now. In both cases, the
+passed ``dict`` **will be mutated** after the call.
 
 *vapid_private_key* - Either a path to a VAPID EC2 private key PEM file,
 or a string containing the DER representation. (See
@@ -93,7 +95,8 @@ e.g. the output of:
 
    openssl ecparam -name prime256v1 -genkey -noout -out private_key.pem
 
-**Example**
+Example
+'''''''
 
 .. code:: python
 
@@ -140,7 +143,10 @@ The following methods are available:
 Send the data using additional parameters. On error, returns a
 ``WebPushException``
 
-**Parameters**
+.. _parameters-1:
+
+Parameters
+''''''''''
 
 *data* Binary string of data to send
 
@@ -165,7 +171,10 @@ purposes.
 *timeout* timeout for requests POST query. See `requests
 documentation <http://docs.python-requests.org/en/master/user/quickstart/#timeouts>`__.
 
-**Example**
+.. _example-1:
+
+Example
+'''''''
 
 to send from Chrome using the old GCM mode:
 
@@ -179,13 +188,24 @@ to send from Chrome using the old GCM mode:
 Encode the ``data`` for future use. On error, returns a
 ``WebPushException``
 
-**Parameters**
+.. _parameters-2:
+
+Parameters
+''''''''''
 
 *data* Binary string of data to send
 
 *content_encoding* ECE content encoding type (defaults to “aes128gcm”)
 
-**Example**
+*Note* This will return a ``NoData`` exception if the data is not
+present or empty. It is completely valid to send a WebPush notification
+with no data, but encoding is a no-op in that case. Best not to call it
+if you don’t have data.
+
+.. _example-2:
+
+Example
+'''''''
 
 .. code:: python
 
@@ -207,11 +227,13 @@ This uses two files:
 
 .. code:: json
 
-   {"endpoint": "https://push...",
-    "keys": {
-        "auth": "ab01...",
-        "p256dh": "aa02..."
-    }}
+   {
+     "endpoint": "https://push...",
+     "keys": {
+       "auth": "ab01...",
+       "p256dh": "aa02..."
+     }
+   }
 
 If you’re interested in just testing your applications WebPush
 interface, you could use the Command Line:
