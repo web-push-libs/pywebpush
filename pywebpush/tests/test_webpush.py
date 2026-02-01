@@ -319,7 +319,7 @@ class WebpushTestUtils(unittest.TestCase):
             '-H "ttl: 0"',
             '-H "content-length:',
         ]:
-            assert s in result, "missing: {}".format(s)
+            assert s in result, f"missing: {s}"
 
     def test_ci_dict(self):
         ci = CaseInsensitiveDict({"Foo": "apple", "bar": "banana"})
@@ -554,7 +554,7 @@ class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase)
             '-H "ttl: 0"',
             '-H "content-length:',
         ]:
-            assert s in result, "missing: {}".format(s)
+            assert s in result, f"missing: {s}"
 
 
 class WebpushExceptionTestCase(unittest.TestCase):
@@ -562,7 +562,7 @@ class WebpushExceptionTestCase(unittest.TestCase):
         from requests import Response
 
         exp = WebPushException("foo")
-        assert "{}".format(exp) == "WebPushException: foo"
+        assert f"{exp}" == "WebPushException: foo"
         # Really should try to load the response to verify, but this mock
         # covers what we need.
         response = Mock(spec=Response)
@@ -578,10 +578,10 @@ class WebpushExceptionTestCase(unittest.TestCase):
         response.status_code = 401
         response.reason = "Unauthorized"
         exp = WebPushException("foo", response)
-        assert "{}".format(exp) == "WebPushException: foo, Response {}".format(
+        assert f"{exp}" == "WebPushException: foo, Response {}".format(
             response.text
         )
-        assert "{}".format(exp.response), "<Response [401]>"
+        assert f"{exp.response}", "<Response [401]>"
         assert cast(requests.Response, exp.response).json().get("errno") == 109
         exp = WebPushException("foo", [1, 2, 3])
-        assert "{}".format(exp) == "WebPushException: foo, Response [1, 2, 3]"
+        assert f"{exp}" == "WebPushException: foo, Response [1, 2, 3]"
