@@ -1,5 +1,9 @@
 # I am terrible at keeping this up-to-date.
 
+## 2.2.1 (2026-02-06)
+
+- add'l typing info (Thanks @rotzbua)
+
 ## 2.2.0 (2026-)
 
 - Update `rst` files to reflect `md` file changes
