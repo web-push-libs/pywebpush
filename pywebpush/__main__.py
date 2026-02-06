@@ -76,10 +76,10 @@ def get_config():
                     args.claims = json.loads(r.read())
                 except JSONDecodeError as e:
                     raise WebPushException(
-                        "Could not read the VAPID claims file {}".format(e)
+                        f"Could not read the VAPID claims file {e}"
                     )
     except Exception as ex:
-        logging.error("Couldn't read input {}.".format(ex))
+        logging.error(f"Couldn't read input {ex}.")
         raise ex
     return args
 
@@ -101,7 +101,7 @@ def main() -> None:
         )
         print(result)
     except Exception as ex:
-        logging.error("{}".format(ex))
+        logging.error(f"{ex}")
 
 
 if __name__ == "__main__":
