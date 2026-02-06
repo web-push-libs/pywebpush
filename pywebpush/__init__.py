@@ -34,11 +34,11 @@ class WebPushException(Exception):
 
     """
 
-    def __init__(self, message, response=None):
+    def __init__(self, message, response=None) -> None:
         self.message = message
         self.response = response
 
-    def __str__(self):
+    def __str__(self) -> str:
         extra = ""
         if self.response is not None:
             try:
@@ -57,12 +57,12 @@ class NoData(Exception):
 class CaseInsensitiveDict(dict):
     """A dictionary that has case-insensitive keys"""
 
-    def __init__(self, data={}, **kwargs):
+    def __init__(self, data={}, **kwargs) -> None:
         for key in data:
             dict.__setitem__(self, key.lower(), data[key])
         self.update(kwargs)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         return dict.__contains__(self, key.lower())
 
     def __setitem__(self, key, value):
@@ -80,7 +80,7 @@ class CaseInsensitiveDict(dict):
         except KeyError:
             return default
 
-    def update(self, data):
+    def update(self, data) -> None:
         for key in data:
             self.__setitem__(key, data[key])
 
@@ -137,7 +137,7 @@ class WebPusher:
         requests_session: Union[None, requests.Session] = None,
         aiohttp_session: Union[None, aiohttp.client.ClientSession] = None,
         verbose: bool = False,
-    ):
+    ) -> None:
         """Initialize using the info provided by the client PushSubscription
         object (See
         https://developer.mozilla.org/en-US/docs/Web/API/PushManager/subscribe)
@@ -186,11 +186,11 @@ class WebPusher:
                 self._repad(cast(bytes, keys["auth"]))
             )
 
-    def verb(self, msg: str, *args, **kwargs):
+    def verb(self, msg: str, *args, **kwargs) -> None:
         if self.verbose:
             logging.info(msg.format(*args, **kwargs))
 
-    def _repad(self, data: bytes):
+    def _repad(self, data: bytes) -> bytes:
         """Add base64 padding to the end of a string, if required"""
         return data + b"===="[: len(data) % 4]
 
@@ -266,7 +266,7 @@ class WebPusher:
                 reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
-    def as_curl(self, endpoint: str, encoded_data: bytes, headers: Dict[str, str]):
+    def as_curl(self, endpoint: str, encoded_data: bytes, headers: Dict[str, str]) -> str:
         """Return the send as a curl command.
 
         Useful for debugging. This will write out the encoded data to a local
