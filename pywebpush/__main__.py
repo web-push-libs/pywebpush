@@ -84,7 +84,7 @@ def get_config():
     return args
 
 
-def main():
+def main() -> None:
     """Send data"""
 
     try:
