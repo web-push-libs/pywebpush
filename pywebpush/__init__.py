@@ -9,7 +9,7 @@ import os
 import time
 import logging
 from copy import deepcopy
-from typing import cast, Union, Dict
+from typing import cast, Union
 
 try:
     from urlparse import urlparse
@@ -128,14 +128,13 @@ class WebPusher:
     ]
     verbose = False
 
-    # Note: the type declarations are not valid under python 3.8,
     def __init__(
         self,
-        subscription_info: Dict[
-            str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+        subscription_info: dict[
+            str, str | bytes | dict[str, str | bytes]
         ],
-        requests_session: Union[None, requests.Session] = None,
-        aiohttp_session: Union[None, aiohttp.client.ClientSession] = None,
+        requests_session: None | requests.Session = None,
+        aiohttp_session: None | aiohttp.client.ClientSession = None,
         verbose: bool = False,
     ) -> None:
         """Initialize using the info provided by the client PushSubscription
@@ -168,8 +167,8 @@ class WebPusher:
         self.subscription_info = deepcopy(subscription_info)
         self.auth_key = self.receiver_key = None
         if "keys" in subscription_info:
-            keys: Dict[str, Union[str, bytes]] = cast(
-                Dict[str, Union[str, bytes]], self.subscription_info["keys"]
+            keys: dict[str, str | bytes] = cast(
+                dict[str, str | bytes], self.subscription_info["keys"]
             )
             for k in ["p256dh", "auth"]:
                 if keys.get(k) is None:
@@ -266,7 +265,7 @@ class WebPusher:
                 reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
-    def as_curl(self, endpoint: str, encoded_data: bytes, headers: Dict[str, str]) -> str:
+    def as_curl(self, endpoint: str, encoded_data: bytes, headers: dict[str, str]) -> str:
         """Return the send as a curl command.
 
         Useful for debugging. This will write out the encoded data to a local
@@ -300,8 +299,8 @@ class WebPusher:
 
     def _prepare_send_data(
         self,
-        data: Union[None, bytes] = None,
-        headers: Union[None, Dict[str, str]] = None,
+        data: None | bytes = None,
+        headers: None | dict[str, str] = None,
         ttl: int = 0,
         content_encoding: str = "aes128gcm",
     ) -> dict:
@@ -361,7 +360,7 @@ class WebPusher:
 
         return {"endpoint": endpoint, "data": encoded_data, "headers": headers}
 
-    def send(self, *args, **kwargs) -> Union[Response, str]:
+    def send(self, *args, **kwargs) -> Response | str:
         """Encode and send the data to the Push Service"""
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
@@ -387,7 +386,7 @@ class WebPusher:
         )
         return resp
 
-    async def send_async(self, *args, **kwargs) -> Union[aiohttp.ClientResponse, str]:
+    async def send_async(self, *args, **kwargs) -> aiohttp.ClientResponse | str:
         timeout = kwargs.pop("timeout", 10000)
         curl = kwargs.pop("curl", False)
 
@@ -414,20 +413,20 @@ class WebPusher:
 
 
 def webpush(
-    subscription_info: Dict[
-        str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+    subscription_info: dict[
+        str, str | bytes | dict[str, str | bytes]
     ],
-    data: Union[None, str] = None,
-    vapid_private_key: Union[None, Vapid, str] = None,
-    vapid_claims: Union[None, Dict[str, Union[str, int]]] = None,
+    data: None | str = None,
+    vapid_private_key: None | Vapid | str = None,
+    vapid_claims: None | dict[str, str | int] = None,
     content_encoding: str = "aes128gcm",
     curl: bool = False,
-    timeout: Union[None, float] = None,
+    timeout: None | float = None,
     ttl: int = 0,
     verbose: bool = False,
-    headers: Union[None, Dict[str, Union[str, int, float]]] = None,
-    requests_session: Union[None, requests.Session] = None,
-) -> Union[str, requests.Response]:
+    headers: None | dict[str, str | int | float] = None,
+    requests_session: None | requests.Session = None,
+) -> str | requests.Response:
     """
         One call solution to endcode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
@@ -544,23 +543,23 @@ def webpush(
 
 
 async def webpush_async(
-    subscription_info: Dict[
-        str, Union[Union[str, bytes], Dict[str, Union[str, bytes]]]
+    subscription_info: dict[
+        str, str | bytes | dict[str, str | bytes]
     ],
-    data: Union[None, str] = None,
-    vapid_private_key: Union[None, Vapid, str] = None,
-    vapid_claims: Union[None, Dict[str, Union[str, int]]] = None,
+    data: None | str = None,
+    vapid_private_key: None | Vapid | str = None,
+    vapid_claims: None | dict[str, str | int] = None,
     content_encoding: str = "aes128gcm",
     curl: bool = False,
-    timeout: Union[None, float] = None,
+    timeout: None | float = None,
     ttl: int = 0,
     verbose: bool = False,
-    headers: Union[None, Dict[str, Union[str, int, float]]] = None,
-    aiohttp_session: Union[None, aiohttp.ClientSession] = None,
-) -> Union[str, aiohttp.ClientResponse]:
+    headers: None | dict[str, str | int | float] = None,
+    aiohttp_session: None | aiohttp.ClientSession = None,
+) -> str | aiohttp.ClientResponse:
     """
-        Async version of webpush function. One call solution to encode and send 
-        `data` to the endpoint contained in `subscription_info` using optional 
+        Async version of webpush function. One call solution to encode and send
+        `data` to the endpoint contained in `subscription_info` using optional
         VAPID auth headers.
 
         Example:
