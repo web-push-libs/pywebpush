@@ -144,15 +144,9 @@ class WebPusher:
 
         :param subscription_info: a dict containing the subscription_info from
             the client.
-        :type subscription_info: dict
-
         :param requests_session: a requests.Session object to optimize requests
             to the same client.
-        :type requests_session: requests.Session
-
         :param verbose: provide verbose feedback
-        :type verbose: bool
-
         """
 
         self.verbose = verbose
@@ -202,7 +196,6 @@ class WebPusher:
         :param data: A serialized block of byte data (String, JSON, bit array,
             etc.) Make sure that whatever you send, your client knows how
             to understand it.
-        :type data: str
         :param content_encoding: The content_encoding type to use to encrypt
             the data. Defaults to RFC8188 "aes128gcm". The previous draft-01 is
             "aesgcm", however this format is now deprecated.
@@ -273,13 +266,8 @@ class WebPusher:
         file named `encrypted.data`
 
         :param endpoint: Push service endpoint URL
-        :type endpoint: basestring
         :param encoded_data: byte array of encoded data
-        :type encoded_data: bytearray
         :param headers: Additional headers for the send
-        :type headers: dict
-        :returns string
-
         """
         header_list = [
             f'-H "{key.lower()}: {val}" \\ \n' for key, val in headers.items()
@@ -310,13 +298,10 @@ class WebPusher:
         :param data: A serialized block of data (see encode() ).
         :type data: str
         :param headers: A dictionary containing any additional HTTP headers.
-        :type headers: dict
         :param ttl: The Time To Live in seconds for this message if the
             recipient is not online. (Defaults to "0", which discards the
             message immediately if the recipient is unavailable.)
-        :type ttl: int
         :param content_encoding: ECE content encoding (defaults to "aes128gcm")
-        :type content_encoding: str
         """
         # Encode the data.
         if headers is None:
@@ -453,28 +438,17 @@ def webpush(
         `WebPushException`.
 
     :param subscription_info: Provided by the client call
-    :type subscription_info: dict
     :param data: Serialized data to send
-    :type data: str
     :param vapid_private_key: Vapid instance or path to vapid private key PEM \
                               or encoded str
     :type vapid_private_key: Union[Vapid, str]
     :param vapid_claims: Dictionary of claims ('sub' required)
-    :type vapid_claims: dict
     :param content_encoding: Optional content type string
-    :type content_encoding: str
     :param curl: Return as "curl" string instead of sending
-    :type curl: bool
     :param timeout: POST requests timeout
-    :type timeout: float
     :param ttl: Time To Live
-    :type ttl: int
     :param verbose: Provide verbose feedback
-    :type verbose: bool
-    :return requests.Response or string
     :param headers: Dictionary of extra HTTP headers to include
-    :type headers: dict
-
     """
     if headers is None:
         headers = dict()
@@ -588,30 +562,18 @@ async def webpush_async(
         `WebPushException`.
 
     :param subscription_info: Provided by the client call
-    :type subscription_info: dict
     :param data: Serialized data to send
-    :type data: str
     :param vapid_private_key: Vapid instance or path to vapid private key PEM \
                               or encoded str
     :type vapid_private_key: Union[Vapid, str]
     :param vapid_claims: Dictionary of claims ('sub' required)
-    :type vapid_claims: dict
     :param content_encoding: Optional content type string
-    :type content_encoding: str
     :param curl: Return as "curl" string instead of sending
-    :type curl: bool
     :param timeout: POST requests timeout
-    :type timeout: float
     :param ttl: Time To Live
-    :type ttl: int
     :param verbose: Provide verbose feedback
-    :type verbose: bool
     :param headers: Dictionary of extra HTTP headers to include
-    :type headers: dict
     :param aiohttp_session: Optional aiohttp ClientSession for connection reuse
-    :type aiohttp_session: aiohttp.ClientSession
-    :return aiohttp.ClientResponse or string
-
     """
     if headers is None:
         headers = dict()
