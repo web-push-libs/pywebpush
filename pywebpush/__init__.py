@@ -9,12 +9,8 @@ import os
 import time
 import logging
 from copy import deepcopy
-from typing import cast, Union
-
-try:
-    from urlparse import urlparse
-except ImportError:  # pragma nocover
-    from urllib.parse import urlparse
+from typing import cast, Union, Dict
+from urllib.parse import urlparse
 
 import aiohttp
 import http_ece
