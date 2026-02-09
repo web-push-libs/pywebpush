@@ -3,7 +3,7 @@ import json
 import os
 import unittest
 import time
-from typing import cast, Union, Dict
+from typing import cast
 from unittest.mock import patch, Mock, AsyncMock
 
 import http_ece
@@ -192,7 +192,7 @@ class WebpushTestUtils(unittest.TestCase):
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
         vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
-        claims: Dict[str, Union[str, int]] = dict(
+        claims: dict[str, str | int] = dict(
             sub="mailto:ops@example.com", aud="https://example.com"
         )
         webpush(
@@ -456,7 +456,7 @@ class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase)
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
         vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
-        claims: Dict[str, Union[str, int]] = dict(
+        claims: dict[str, str | int] = dict(
             sub="mailto:ops@example.com", aud="https://example.com"
         )
         await webpush_async(
