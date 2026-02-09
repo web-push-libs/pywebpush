@@ -1,5 +1,13 @@
 # I am terrible at keeping this up-to-date.
 
+## 2.3.0 (2026-02-09)
+
+- Cleanup from @Rotzbua
+  - Use modern typing for annotations
+  - Remove legacy python 2 import
+  - remove redundant :type annotations
+  - use [.dev] extras in CI
+
 ## 2.2.1 (2026-02-06)
 
 - add'l typing info (Thanks @rotzbua)
