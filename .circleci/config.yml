@@ -14,7 +14,7 @@ jobs:
           pkg-manager: pip
       - run:
           name: Build
-          command: pip3 install -r test-requirements.txt
+          command: pip3 install ".[dev]"
       - run:
           name: Run tests
           command: python -m pytest pywebpush
