@@ -1,23 +1,23 @@
 import base64
 import json
 import os
-import unittest
 import time
+import unittest
 from typing import cast
-from unittest.mock import patch, Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
 import http_ece
 import py_vapid
 import requests
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 from pywebpush import (
-    WebPusher,
-    NoData,
-    WebPushException,
     CaseInsensitiveDict,
+    NoData,
+    WebPusher,
+    WebPushException,
     webpush,
     webpush_async,
 )
@@ -53,16 +53,16 @@ class WebpushTestUtils(unittest.TestCase):
 
     def test_init(self):
         # use static values so we know what to look for in the reply
-        subscription_info = {
-            "endpoint": "https://example.com/",
-            "keys": {
-                "p256dh": (
+        subscription_info = dict(
+            endpoint="https://example.com/",
+            keys=dict(
+                p256dh=(
                     "BOrnIslXrUow2VAzKCUAE4sIbK00daEZCswOcf8m3T"
                     "F8V82B-OpOg5JbmYLg44kRcvQC1E2gMJshsUYA-_zMPR8"
                 ),
-                "auth": "k8JV6sjdbhAi1n3_LDBLvA",
-            },
-        }
+                auth="k8JV6sjdbhAi1n3_LDBLvA",
+            ),
+        )
         rk_decode = (
             b'\x04\xea\xe7"\xc9W\xadJ0\xd9P3(%\x00\x13\x8b'
             b"\x08l\xad4u\xa1\x19\n\xcc\x0eq\xff&\xdd1"
@@ -211,7 +211,7 @@ class WebpushTestUtils(unittest.TestCase):
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
         vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
-        claims = dict(
+        claims: dict[str, str | int] = dict(
             sub="mailto:ops@example.com",
             aud="https://example.com",
             exp=int(time.time() - 48600),
@@ -477,7 +477,7 @@ class WebPusherAsyncTestCase(WebpushTestUtils, unittest.IsolatedAsyncioTestCase)
         subscription_info = self._gen_subscription_info()
         data = "Mary had a little lamb"
         vapid_key = py_vapid.Vapid.from_string(self.vapid_key)
-        claims = dict(
+        claims: dict[str, str | int] = dict(
             sub="mailto:ops@example.com",
             aud="https://example.com",
             exp=int(time.time() - 48600),
@@ -578,9 +578,7 @@ class WebpushExceptionTestCase(unittest.TestCase):
         response.status_code = 401
         response.reason = "Unauthorized"
         exp = WebPushException("foo", response)
-        assert f"{exp}" == "WebPushException: foo, Response {}".format(
-            response.text
-        )
+        assert f"{exp}" == "WebPushException: foo, Response {}".format(response.text)
         assert f"{exp.response}", "<Response [401]>"
         assert cast(requests.Response, exp.response).json().get("errno") == 109
         exp = WebPushException("foo", [1, 2, 3])
