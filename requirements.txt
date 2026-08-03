@@ -1,3 +1,4 @@
+# NOTE: Requirements are now in pyproject.toml
 aiohttp
 cryptography>=2.6.1
 http-ece>=1.1.0
