@@ -465,7 +465,7 @@ def webpush(
             # encryption lives for 12 hours
             vapid_claims["exp"] = int(time.time()) + (12 * 60 * 60)
             if verbose:
-                logging.info("Setting VAPID expry to {}...".format(vapid_claims["exp"]))
+                logging.info("Setting VAPID expiry to {}...".format(vapid_claims["exp"]))
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if isinstance(vapid_private_key, Vapid01):
