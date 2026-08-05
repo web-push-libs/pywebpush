@@ -16,6 +16,7 @@ downloads/
 eggs/
 .eggs/
 include/
+ignore/
 local/
 lib/
 lib64/
@@ -26,6 +27,7 @@ wheels/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
+.installed
 *.egg
 MANIFEST
 
@@ -53,6 +55,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+ltest/
+.circleci/
 
 # Translations
 *.mo
@@ -125,6 +129,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.envrc
 env/
 venv/
 ENV/

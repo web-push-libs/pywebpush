@@ -1,12 +1,11 @@
 import argparse
-import os
 import json
 import logging
-import math
+import os
 
 from requests import JSONDecodeError
 
-from pywebpush import webpush, WebPushException
+from pywebpush import WebPushException, webpush
 
 
 def get_config():
@@ -20,7 +19,8 @@ def get_config():
         "--wns",
         help="Include WNS cache header based on TTL",
         default=False,
-        action="store_true")
+        action="store_true",
+    )
     parser.add_argument(
         "--curl",
         help="Don't send, display as curl command",
@@ -75,9 +75,7 @@ def get_config():
                 try:
                     args.claims = json.loads(r.read())
                 except JSONDecodeError as e:
-                    raise WebPushException(
-                        f"Could not read the VAPID claims file {e}"
-                    )
+                    raise WebPushException(f"Could not read the VAPID claims file {e}")
     except Exception as ex:
         logging.error(f"Couldn't read input {ex}.")
         raise ex
