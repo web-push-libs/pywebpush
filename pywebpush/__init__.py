@@ -2,23 +2,22 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import asyncio
 import base64
 import json
+import logging
 import os
 import time
-import logging
 from copy import deepcopy
-from typing import cast, Union, Dict
+from types import ModuleType
+from typing import Mapping, cast
 from urllib.parse import urlparse
 
 import aiohttp
 import http_ece
 import requests
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
-from functools import partial
+from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid, Vapid01
 from requests import Response
 
@@ -76,7 +75,9 @@ class CaseInsensitiveDict(dict):
         except KeyError:
             return default
 
-    def update(self, data) -> None:
+    # Skip mypy check on the following because the declaration is too
+    # abstract
+    def update(self, data: dict) -> None:  # type: ignore
         for key in data:
             self.__setitem__(key, data[key])
 
@@ -116,19 +117,18 @@ class WebPusher:
 
     """
 
-    subscription_info = {}
-    valid_encodings = [
+    subscription_info: Mapping = {}
+    valid_encodings: list[str] = [
         # "aesgcm128",  # this is draft-0, but DO NOT USE.
         "aesgcm",  # draft-httpbis-encryption-encoding-01
         "aes128gcm",  # RFC8188 Standard encoding
     ]
-    verbose = False
+    verbose: bool = False
+    mod_or_session: ModuleType | requests.Session
 
     def __init__(
         self,
-        subscription_info: dict[
-            str, str | bytes | dict[str, str | bytes]
-        ],
+        subscription_info: Mapping,
         requests_session: None | requests.Session = None,
         aiohttp_session: None | aiohttp.client.ClientSession = None,
         verbose: bool = False,
@@ -146,9 +146,9 @@ class WebPusher:
 
         self.verbose = verbose
         if requests_session is None:
-            self.requests_method = requests
+            self.mod_or_session = requests
         else:
-            self.requests_method = requests_session
+            self.mod_or_session = requests_session
 
         self.aiohttp_session = aiohttp_session
 
@@ -205,7 +205,7 @@ class WebPusher:
         if not self.auth_key or not self.receiver_key:
             raise WebPushException("No keys specified in subscription info")
         self.verb("Encoding data...")
-        salt = None
+        salt: bytes | None = None
         if content_encoding not in self.valid_encodings:
             raise WebPushException(
                 "Invalid content encoding specified. "
@@ -214,7 +214,7 @@ class WebPusher:
         if content_encoding == "aesgcm":
             self.verb("Generating salt for aesgcm...")
             salt = os.urandom(16)
-            logging.debug(f"Salt: {salt}")
+            logging.debug(f"Salt: {salt!r}")
         # The server key is an ephemeral ECDH key used only for this
         # transaction
         server_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
@@ -223,8 +223,6 @@ class WebPusher:
             format=serialization.PublicFormat.UncompressedPoint,
         )
 
-        if isinstance(data, str):
-            data = bytes(data.encode("utf8"))
         if content_encoding == "aes128gcm":
             self.verb("Encrypting to aes128gcm...")
             encrypted = http_ece.encrypt(
@@ -254,7 +252,9 @@ class WebPusher:
                 reply["salt"] = base64.urlsafe_b64encode(salt).strip(b"=")
         return reply
 
-    def as_curl(self, endpoint: str, encoded_data: bytes, headers: dict[str, str]) -> str:
+    def as_curl(
+        self, endpoint: str, encoded_data: bytes, headers: dict[str, str]
+    ) -> str:
         """Return the send as a curl command.
 
         Useful for debugging. This will write out the encoded data to a local
@@ -274,9 +274,7 @@ class WebPusher:
             data = "--data-binary @encrypted.data"
         if "content-length" not in headers:
             self.verb("Generating content-length header...")
-            header_list.append(
-                f'-H "content-length: {len(encoded_data)}" \\ \n'
-            )
+            header_list.append(f'-H "content-length: {len(encoded_data)}" \\ \n')
         return """curl -vX POST {url} \\\n{headers}{data}""".format(
             url=endpoint, headers="".join(header_list), data=data
         )
@@ -303,6 +301,8 @@ class WebPusher:
             headers = dict()
         encoded = CaseInsensitiveDict()
         headers = CaseInsensitiveDict(headers)
+        if isinstance(data, str):
+            data = data.encode()
         if data:
             encoded = self.encode(data, content_encoding)
             if "crypto_key" in encoded:
@@ -354,7 +354,7 @@ class WebPusher:
             headers = params["headers"]
             return self.as_curl(endpoint, encoded_data=encoded_data, headers=headers)
 
-        resp = self.requests_method.post(
+        resp = self.mod_or_session.post(
             endpoint,
             timeout=timeout,
             **params,
@@ -363,7 +363,7 @@ class WebPusher:
             "\nResponse:\n\tcode: {}\n\tbody: {}\n\theaders: {}",
             resp.status_code,
             resp.text or "Empty",
-            resp.headers or "None"
+            resp.headers or "None",
         )
         return resp
 
@@ -394,9 +394,7 @@ class WebPusher:
 
 
 def webpush(
-    subscription_info: dict[
-        str, str | bytes | dict[str, str | bytes]
-    ],
+    subscription_info: Mapping,
     data: None | str = None,
     vapid_private_key: None | Vapid | str = None,
     vapid_claims: None | dict[str, str | int] = None,
@@ -409,7 +407,7 @@ def webpush(
     requests_session: None | requests.Session = None,
 ) -> str | requests.Response:
     """
-        One call solution to endcode and send `data` to the endpoint
+        One call solution to encode and send `data` to the endpoint
         contained in `subscription_info` using optional VAPID auth headers.
 
         in example:
@@ -467,7 +465,9 @@ def webpush(
             # encryption lives for 12 hours
             vapid_claims["exp"] = int(time.time()) + (12 * 60 * 60)
             if verbose:
-                logging.info("Setting VAPID expiry to {}...".format(vapid_claims["exp"]))
+                logging.info(
+                    "Setting VAPID expiry to {}...".format(vapid_claims["exp"])
+                )
         if not vapid_private_key:
             raise WebPushException("VAPID dict missing 'private_key'")
         if isinstance(vapid_private_key, Vapid01):
@@ -513,9 +513,7 @@ def webpush(
 
 
 async def webpush_async(
-    subscription_info: dict[
-        str, str | bytes | dict[str, str | bytes]
-    ],
+    subscription_info: dict[str, str | bytes | dict[str, str | bytes]],
     data: None | str = None,
     vapid_private_key: None | Vapid | str = None,
     vapid_claims: None | dict[str, str | int] = None,

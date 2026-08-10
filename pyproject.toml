@@ -9,9 +9,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pywebpush"
-version = "2.3.0"
+version = "2.4.0"
+# PYTHON_VER
 requires-python = ">= 3.10"
-license = { text = "MPL-2.0" }
+license = "MPL-2.0"
 authors = [{ name = "JR Conlin", email = "src+webpusher@jrconlin.com" }]
 description = "WebPush publication library"
 readme = "README.md"
@@ -22,13 +23,20 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-dynamic = ["dependencies"]
+dependencies = [
+    "aiohttp",
+    "cryptography>=47.0.0",
+    "http-ece>=1.1.0",
+    "requests>=2.21.0",
+    "py-vapid>=1.7.0",
+]
+
 
 [project.urls]
 Homepage = "https://github.com/web-push-libs/pywebpush"
 
 [project.optional-dependencies]
-dev = ["black", "mock", "pytest"]
+dev = ["isort", "bandit", "black", "mock", "pytest"]
 
 # create the `pywebpush` helper using `python -m pip install --editable .`
 [project.scripts]
@@ -39,3 +47,29 @@ dependencies = { file = "requirements.txt" }
 
 [tool.setuptools.packages.find]
 include = ["pywebpush*"]
+
+[tool.isort]
+profile = "black"
+skip_gitignore = true
+
+[tool.bandit]
+# skips asserts
+# B101: https://bandit.readthedocs.io/en/latest/plugins/b101_assert_used.html#
+# skip false detect of hardcoded sql
+# B608:https://bandit.readthedocs.io/en/latest/plugins/B608_hardcoded_sql_expressions.html#
+skips = ["B101", "B608"]
+
+[tool.mypy]
+disable_error_code = "attr-defined"
+disallow_untyped_calls = false
+follow_imports = "normal"
+ignore_missing_imports = true
+pretty = true
+show_error_codes = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_ignores = true
+warn_unreachable = true
+check_untyped_defs = true
