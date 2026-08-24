@@ -15,7 +15,7 @@ on:
 jobs:
   release-build:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success'}} && !startsWith({{ github.event.ref_name }}, "doc/")
+    if: ${{ github.event.workflow_run.conclusion == 'success'}} && !startsWith(${{ github.event.ref_name }}, "doc/")
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
