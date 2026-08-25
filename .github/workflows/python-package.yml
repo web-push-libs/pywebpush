@@ -36,7 +36,7 @@ jobs:
         with:
           # Name of the distribution (no idea why they don't make this clear)
           name: pywebpush
-          path: dist/
+          path: dist/*.tar.gz
 
   pypi-publish:
     # Remember, matching strings need to be in single quotes.
@@ -66,6 +66,6 @@ jobs:
           ls -aFl dist/
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
-          verbose: true
+        #with:
+        #  packages-dir: dist/
+        #  verbose: true
