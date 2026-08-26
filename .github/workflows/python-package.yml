@@ -5,17 +5,26 @@ name: Python package
 
 on:
   workflow_run:
+    # This builds a dependency on another workflow. In this case the `python-lint.yml` file. Note that you don't
+    # refer to the file, but to the name of the workflow contained in the file (not the job either, the full workflow)
     workflows:
       - "Python lint"
     types:
       - completed
     branches:
+      # And conditionally, only work if we're dealing with a change to `main`. This should only happen once a
+      # PR has been approved and landed. (I mean, it's just me, so I tend to YOLO right now since there's nobody
+      # else helping out, but hey, I like to dream.)
       - main
 
 jobs:
   release-build:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success'}} && !startsWith({{ github.event.ref_name }}, "doc/")
+    # If the previous tests succeeded (and this isn't just a `docs` release), build the image that will go to
+    # pypi. I _could_ do all the things in one step. Frankly, kinda wonder if that might be a better idea, but
+    # building the image technically removes any testing debris that might be around. Plus, I get to burn a bit
+    # more of microsoft's money, so there's that.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && !startsWith(github.ref_name, 'docs?/') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -32,18 +41,25 @@ jobs:
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: release-dists
+          # Name of the distribution (no idea why they don't make this clear)
+          name: pywebpush
+          # Path containing the contents to turn into a zip file and store between jobs.
           path: dist/
 
   pypi-publish:
-    # Remember, matching strings need to be in single quotes.
     runs-on: ubuntu-latest
+    # Remember, matching strings need to be in single quotes.
+    needs:
+      # Otherwise, this will run in parallel with the other job. Since that one builds the image to
+      # distribute, that's not a good idea.
+      - release-build
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
     # Dedicated environments with protections for publishing are strongly recommended.
     # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
+      # Remember, this is the `Environment Name` you'll need to specify for the pypi Trusted Publisher Management.
       name: pypi-publish
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
       url: https://pypi.org/p/pywebpush
@@ -53,16 +69,22 @@ jobs:
       # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
 
     steps:
-      - name: Retrieve release distributions
+      - name: Pull release distributions
+        # Fetch the image we built in the last job: `release-build` and stuff it into the `dist/` subdirectory
         uses: actions/download-artifact@v8
         with:
-          name: release-dists
+          # Name of the distribution (no idea why they don't make this clear)
+          # This is the image that you built in the prior step.
+          name: pywebpush
           path: dist/
       - name: validate build
+        # Completely optional. For now, just list what we think we have. This should be the `*.whl` and source tarball.
         run: |
           ls -aFl dist/
       - name: Publish release distributions to PyPI
+        # Ok, this will do the Trusted Publisher push to PyPI. You _could_ specify the `packages-dir`, but it defaults
+        # to `dist/`, and why make life more complicated?
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/
+        #  packages-dir: dist/
           verbose: true

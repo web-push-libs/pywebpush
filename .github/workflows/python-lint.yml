@@ -3,6 +3,10 @@
 
 name: Python lint
 
+# Perform the various lint checks. FWIW, this is the same as doing a `make lint`, mostly by design.
+# If I was cleverer I would have this do the same thing, and have the official lint do a `make lint`
+# so that there's no risk of divergence. I'm not that clever, and would rather be more explicit.
+
 on:
   push:
     branches: [ "*" ]
@@ -32,6 +36,7 @@ jobs:
     - name: Lint
       run: |
         # stop the build if there are Python syntax errors or undefined names
+        isort --sp pyproject.toml -c pywebpush
         black --quiet --diff --config pyproject.toml --check pywebpush
         bandit --quiet -c pyproject.toml pywebpush
     - name: Test with pytest
