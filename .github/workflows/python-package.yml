@@ -2,6 +2,7 @@
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
 name: Python package
+run-name: Package and Publish
 
 on:
   workflow_run:
@@ -39,23 +40,21 @@ jobs:
           python -m build
 
       - name: Upload distributions
+        # Make sure the artifact versions match
         uses: actions/upload-artifact@v4
         with:
           # Name of the distribution (no idea why they don't make this clear)
           name: pywebpush
-          # Path containing the contents to turn into a zip file and store between jobs.
-          path: dist/
+          path: dist/*.tar.gz
 
   pypi-publish:
-    runs-on: ubuntu-latest
     # Remember, matching strings need to be in single quotes.
     needs:
-      # Otherwise, this will run in parallel with the other job. Since that one builds the image to
-      # distribute, that's not a good idea.
       - release-build
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
+    runs-on: ubuntu-latest
     # Dedicated environments with protections for publishing are strongly recommended.
     # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
@@ -63,18 +62,13 @@ jobs:
       name: pypi-publish
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
       url: https://pypi.org/p/pywebpush
-      #
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
 
     steps:
       - name: Pull release distributions
-        # Fetch the image we built in the last job: `release-build` and stuff it into the `dist/` subdirectory
+        # Make sure the artifact versions match
         uses: actions/download-artifact@v8
         with:
           # Name of the distribution (no idea why they don't make this clear)
-          # This is the image that you built in the prior step.
           name: pywebpush
           path: dist/
       - name: validate build
