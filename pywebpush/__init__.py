@@ -25,7 +25,11 @@ from requests import Response
 class WebPushException(Exception):
     """Web Push failure.
 
-    This may contain the requests.Response
+    This may contain a requests.Response or aiohttp.ClientResponse.
+
+    ``status_code`` and ``retry_after`` provide a common interface for
+    inspecting either response type without discarding the original
+    ``response`` object.
 
     """
 
@@ -43,6 +47,27 @@ class WebPushException(Exception):
             except AttributeError:
                 extra = f", Response {self.response}"
         return f"WebPushException: {self.message}{extra}"
+
+    @property
+    def status_code(self) -> int | None:
+        """Return the HTTP status for synchronous or asynchronous responses."""
+        if self.response is None:
+            return None
+        return getattr(
+            self.response,
+            "status_code",
+            getattr(self.response, "status", None),
+        )
+
+    @property
+    def retry_after(self) -> str | None:
+        """Return the provider's Retry-After header, when present."""
+        if self.response is None:
+            return None
+        headers = getattr(self.response, "headers", None)
+        if not headers:
+            return None
+        return headers.get("Retry-After")
 
 
 class NoData(Exception):

@@ -563,6 +563,8 @@ class WebpushExceptionTestCase(unittest.TestCase):
 
         exp = WebPushException("foo")
         assert f"{exp}" == "WebPushException: foo"
+        assert exp.status_code is None
+        assert exp.retry_after is None
         # Really should try to load the response to verify, but this mock
         # covers what we need.
         response = Mock(spec=Response)
@@ -577,9 +579,20 @@ class WebpushExceptionTestCase(unittest.TestCase):
         response.json.return_value = json.loads(response.text)
         response.status_code = 401
         response.reason = "Unauthorized"
+        response.headers = {"Retry-After": "120"}
         exp = WebPushException("foo", response)
         assert f"{exp}" == "WebPushException: foo, Response {}".format(response.text)
         assert f"{exp.response}", "<Response [401]>"
         assert cast(requests.Response, exp.response).json().get("errno") == 109
+        assert exp.status_code == 401
+        assert exp.retry_after == "120"
+
+        async_response = Mock(spec=["status", "headers", "text"])
+        async_response.status = 503
+        async_response.headers = {"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"}
+        exp = WebPushException("async failure", async_response)
+        assert exp.status_code == 503
+        assert exp.retry_after == "Wed, 21 Oct 2015 07:28:00 GMT"
+
         exp = WebPushException("foo", [1, 2, 3])
         assert f"{exp}" == "WebPushException: foo, Response [1, 2, 3]"
