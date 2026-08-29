@@ -1,6 +1,6 @@
 # I am terrible at keeping this up-to-date.
 
-## Unreleased
+## 2.5.0
 
 - Add common `status_code` and `retry_after` accessors to `WebPushException`
   for synchronous and asynchronous responses.

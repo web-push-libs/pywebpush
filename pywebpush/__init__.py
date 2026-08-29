@@ -61,13 +61,12 @@ class WebPushException(Exception):
 
     @property
     def retry_after(self) -> str | None:
-        """Return the provider's Retry-After header, when present."""
-        if self.response is None:
-            return None
-        headers = getattr(self.response, "headers", None)
-        if not headers:
-            return None
-        return headers.get("Retry-After")
+        """Return the provider's Retry-After header, when present.
+
+        The value can be either a delay in seconds or an HTTP date. See
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+        """
+        return getattr(self.response, "headers", {}).get("Retry-After", None)
 
 
 class NoData(Exception):

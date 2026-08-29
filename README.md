@@ -107,6 +107,8 @@ except WebPushException as ex:
     # status_code works with both webpush() and webpush_async().
     if ex.status_code in (429, 503):
         print("Push service requested a retry after:", ex.retry_after)
+        # retry_after is either a delay in seconds or an HTTP date:
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
     # Mozilla returns additional information in the body of the response.
     if ex.response is not None and ex.response.json():
         extra = ex.response.json()
